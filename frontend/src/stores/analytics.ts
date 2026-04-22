@@ -1,15 +1,31 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { api } from '@/lib/api'
-import type { AnalyticsOverview, CategoryBreakdown, DailyVolume, TopSender } from '@/lib/types'
+import type {
+  AnalyticsOverview,
+  CategoryBreakdown,
+  ConfusionEntry,
+  DailyVolume,
+  HourlyHeatmapEntry,
+  PerformanceMetrics,
+  TopSender,
+} from '@/lib/types'
 
 export const useAnalyticsStore = defineStore('analytics', () => {
   const overview = ref<AnalyticsOverview | null>(null)
   const categories = ref<CategoryBreakdown[]>([])
   const dailyVolume = ref<DailyVolume[]>([])
   const topSenders = ref<TopSender[]>([])
+  const performance = ref<PerformanceMetrics | null>(null)
+  const confusionMatrix = ref<ConfusionEntry[]>([])
+  const heatmap = ref<HourlyHeatmapEntry[]>([])
   const loading = ref(false)
+  const exporting = ref(false)
   const period = ref('30d')
+
+  const totalCorrections = computed(() =>
+    confusionMatrix.value.reduce((acc, e) => acc + e.count, 0),
+  )
 
   async function fetchOverview() {
     loading.value = true
@@ -57,6 +73,50 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     }
   }
 
+  async function fetchPerformance() {
+    try {
+      performance.value = await api.get<PerformanceMetrics>('/analytics/performance', {
+        period: period.value,
+      })
+    } catch (e) {
+      console.error('Failed to fetch performance metrics:', e)
+    }
+  }
+
+  async function fetchConfusionMatrix() {
+    try {
+      const res = await api.get<{ entries: ConfusionEntry[] }>('/analytics/confusion-matrix', {
+        period: period.value,
+      })
+      confusionMatrix.value = res.entries ?? []
+    } catch (e) {
+      console.error('Failed to fetch confusion matrix:', e)
+    }
+  }
+
+  async function fetchHeatmap() {
+    try {
+      const res = await api.get<{ entries: HourlyHeatmapEntry[] }>('/analytics/hourly-heatmap', {
+        period: period.value,
+      })
+      heatmap.value = res.entries ?? []
+    } catch (e) {
+      console.error('Failed to fetch heatmap:', e)
+    }
+  }
+
+  async function exportCsv() {
+    exporting.value = true
+    try {
+      const url = `/api/v1/analytics/export?period=${period.value}`
+      window.open(url, '_blank')
+    } catch (e) {
+      console.error('Failed to export CSV:', e)
+    } finally {
+      exporting.value = false
+    }
+  }
+
   async function fetchAll() {
     loading.value = true
     try {
@@ -65,6 +125,9 @@ export const useAnalyticsStore = defineStore('analytics', () => {
         fetchCategories(),
         fetchDailyVolume(),
         fetchTopSenders(),
+        fetchPerformance(),
+        fetchConfusionMatrix(),
+        fetchHeatmap(),
       ])
     } finally {
       loading.value = false
@@ -72,7 +135,11 @@ export const useAnalyticsStore = defineStore('analytics', () => {
   }
 
   return {
-    overview, categories, dailyVolume, topSenders, loading, period,
-    fetchOverview, fetchCategories, fetchDailyVolume, fetchTopSenders, fetchAll,
+    overview, categories, dailyVolume, topSenders,
+    performance, confusionMatrix, heatmap, totalCorrections,
+    loading, exporting, period,
+    fetchOverview, fetchCategories, fetchDailyVolume, fetchTopSenders,
+    fetchPerformance, fetchConfusionMatrix, fetchHeatmap, exportCsv,
+    fetchAll,
   }
 })

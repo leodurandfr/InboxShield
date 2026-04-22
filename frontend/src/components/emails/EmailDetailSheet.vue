@@ -93,7 +93,7 @@ async function moveEmail(folder: string) {
 
 async function toggleFlag() {
   if (!store.selectedEmail) return
-  await store.flagEmail(store.selectedEmail.id, 'flagged')
+  await store.flagEmail(store.selectedEmail.id, !store.selectedEmail.is_flagged)
   toast.success(store.selectedEmail.is_flagged ? 'Email marqué important' : 'Marquage retiré')
 }
 

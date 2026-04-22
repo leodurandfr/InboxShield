@@ -17,8 +17,8 @@ import {
 } from '@/components/ui/select'
 
 const props = defineProps<{
-  email: Email
-  classification: Classification
+  email: ReviewItemType['email']
+  classification: ReviewItemType['classification']
 }>()
 
 const emit = defineEmits<{

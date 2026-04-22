@@ -45,9 +45,35 @@ export const useEmailsStore = defineStore('emails', () => {
     }
   }
 
+  async function fetchEmailDetail(emailId: string) {
+    detailLoading.value = true
+    try {
+      selectedEmail.value = await api.get<EmailDetail>(`/emails/${emailId}`)
+    } catch (e) {
+      console.error('Failed to fetch email detail:', e)
+      selectedEmail.value = null
+    } finally {
+      detailLoading.value = false
+    }
+  }
+
+  function closeDetail() {
+    selectedEmail.value = null
+  }
+
   async function moveEmail(emailId: string, folder: string) {
     await api.post(`/emails/${emailId}/move`, { folder })
     await fetchEmails(page.value)
+  }
+
+  async function flagEmail(emailId: string, flagged: boolean) {
+    await api.post(`/emails/${emailId}/flag`, { flagged })
+    const idx = emails.value.findIndex((e) => e.id === emailId)
+    if (idx >= 0) {
+      const entry = emails.value[idx]!
+      entry.is_flagged = flagged
+    }
+    if (selectedEmail.value?.id === emailId) selectedEmail.value.is_flagged = flagged
   }
 
   async function reclassifyEmail(emailId: string) {
@@ -68,6 +94,8 @@ export const useEmailsStore = defineStore('emails', () => {
 
   return {
     emails, total, page, perPage, pages, loading, filters,
-    fetchEmails, moveEmail, reclassifyEmail, resetFilters,
+    selectedEmail, detailLoading,
+    fetchEmails, fetchEmailDetail, closeDetail,
+    moveEmail, flagEmail, reclassifyEmail, resetFilters,
   }
 })

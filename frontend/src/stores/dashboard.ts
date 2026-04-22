@@ -57,11 +57,11 @@ export const useDashboardStore = defineStore('dashboard', () => {
   function markEmailClassifying(emailId: string, meta?: { from_name?: string; from_address?: string; subject?: string; date?: string }) {
     const idx = pendingEmails.value.findIndex(e => e.id === emailId)
     if (idx !== -1) {
-      // Already in list — update status and move to top
-      pendingEmails.value[idx].processing_status = 'classifying'
+      const existing = pendingEmails.value[idx]!
+      existing.processing_status = 'classifying'
       if (idx > 0) {
         const [email] = pendingEmails.value.splice(idx, 1)
-        pendingEmails.value.unshift(email)
+        if (email) pendingEmails.value.unshift(email)
       }
     } else if (meta) {
       // Not in visible list — add placeholder at top so user sees it

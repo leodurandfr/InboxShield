@@ -44,6 +44,11 @@ export const useSettingsStore = defineStore('settings', () => {
     return api.post<{ success: boolean; provider: string; model: string; latency_ms: number | null; error: string | null }>('/settings/llm/test')
   }
 
+  async function deleteLLMModel(name: string) {
+    await api.delete(`/settings/llm/models/${encodeURIComponent(name)}`)
+    llmModels.value = llmModels.value.filter((m) => m.name !== name)
+  }
+
   async function fetchAll() {
     loading.value = true
     try {
@@ -55,6 +60,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return {
     settings, accounts, llmModels, loading,
-    fetchSettings, updateSettings, fetchAccounts, fetchLLMModels, testLLM, fetchAll,
+    fetchSettings, updateSettings, fetchAccounts, fetchLLMModels, testLLM, deleteLLMModel, fetchAll,
   }
 })

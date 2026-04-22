@@ -76,24 +76,40 @@ Objectif : `python -c "from app.main import app"` réussit. ✅
 
 ---
 
-## Phase 2 — Fondations frontend (pour que `vite dev` démarre)
+## Phase 2 — Fondations frontend ✅ (complétée — build + type-check verts)
 
-Objectif : `pnpm run dev` sert la SPA et la route `/` charge `DashboardView.vue` sans erreur.
+Objectif : `pnpm run dev` sert la SPA et la route `/` charge `DashboardView.vue` sans erreur. ✅
 
 ### 2.1 Points d'entrée Vite
-- [ ] Créer `frontend/index.html` (shell avec `<div id="app">` + `<script type="module" src="/src/main.ts">`)
-- [ ] Créer `frontend/src/main.ts` (`createApp(App).use(router).use(createPinia()).mount('#app')`)
+- [x] Créer `frontend/index.html`
+- [x] Créer `frontend/src/main.ts`
+- [x] Créer `frontend/tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.vitest.json`, `env.d.ts`
+- [x] Ajouter `compilerOptions.paths` + `baseUrl` au `tsconfig.json` racine (requis par shadcn-vue CLI)
 
-### 2.2 Vérifier la chaîne UI
-- [ ] `pnpm run build-only` réussit
-- [ ] `pnpm run type-check` ne remonte pas d'erreurs bloquantes
-- [ ] `pnpm run dev` démarre et sert `/` sans 500
+### 2.2 Régénération des pièces manquantes (ampleur découverte à l'exécution)
 
-### 2.3 Connexion API
-- [ ] Vérifier que `src/lib/api.ts` pointe vers `http://localhost:8000/api/v1/*` en dev
-- [ ] Tester un store (`stores/dashboard.ts`) contre le backend
+Le cleanup Synology a détruit bien plus que le plan initial anticipait. Remis en place :
 
-**Validation Phase 2** : `pnpm run dev` + backend lancé → dashboard s'affiche (même avec données vides).
+- [x] 28 composants Shadcn-vue via `pnpm dlx shadcn-vue@latest add …` (alert, alert-dialog, avatar, badge, button, calendar, card, checkbox, collapsible, dialog, dropdown-menu, input, label, popover, progress, scroll-area, select, separator, sheet, sidebar, skeleton, sonner, switch, table, tabs, textarea, tooltip)
+- [x] `src/lib/utils.ts` — `cn`, `CATEGORY_CONFIG` (9 catégories), `formatRelativeDate`
+- [x] `src/composables/useTheme.ts` — dark mode via classe `dark` sur `<html>`, persistance localStorage
+- [x] `src/stores/newsletters.ts`, `senders.ts`, `threads.ts`
+- [x] Enrichissement `stores/analytics.ts` (performance, confusionMatrix, heatmap, totalCorrections, exportCsv, exporting)
+- [x] Enrichissement `stores/emails.ts` (selectedEmail, detailLoading, fetchEmailDetail, closeDetail, flagEmail)
+- [x] Enrichissement `stores/settings.ts` (deleteLLMModel)
+- [x] `src/components/layout/SiteHeader.vue`
+- [x] `src/components/shared/KPICard.vue`, `EmptyState.vue`, `PaginationControls.vue`
+- [x] `src/components/rules/RuleCreateForm.vue`
+- [x] `src/components/threads/ThreadDetailSheet.vue`
+- [x] Correctifs : ajout de `body_html_excerpt` au type `EmailDetail`, fermeture `</div>` manquante dans `RuleListItem.vue`, ordre d'attributs dans `Sonner.vue`, types `ReviewItem` stricts
+
+### 2.3 Validation
+- [x] `pnpm run type-check` ✅ exit 0
+- [x] `pnpm run build-only` ✅ built in 2.55s
+- [x] `pnpm run dev` ✅ `ready in 336 ms`, HTTP 200 sur `/`, `/src/main.ts`, `/src/App.vue`, `/src/views/DashboardView.vue`
+- [x] `src/lib/api.ts` pointe vers `/api/v1` (proxyfié par Vite → `http://localhost:8000`)
+
+**Validation Phase 2** : la SPA boote, toutes les vues compilent. Les stubs UI s'afficheront vides tant que le backend n'est pas lancé ; dès que `uvicorn` + Postgres tournent, les vues se peuplent via les appels API existants.
 
 ---
 

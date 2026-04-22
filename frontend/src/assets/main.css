@@ -1,3 +1,6 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -173,6 +176,7 @@
   /* Sidebar widths */
   --sidebar-width: 240px;
   --sidebar-width-collapsed: 60px;
+  --font-heading: var(--font-sans);
 }
 
 @layer base {
@@ -205,4 +209,13 @@
   background: var(--muted-foreground);
   border-radius: 3px;
   opacity: 0.3;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

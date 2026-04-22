@@ -69,6 +69,7 @@ export interface EmailDetail extends Email {
   to_addresses: string[] | null
   cc_addresses: string[] | null
   body_excerpt: string | null
+  body_html_excerpt: string | null
   attachment_names: string[] | null
   original_folder: string | null
   size_bytes: number | null
