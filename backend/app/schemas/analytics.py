@@ -46,3 +46,34 @@ class TopSender(BaseModel):
 class TopSendersResponse(BaseModel):
     limit: int
     senders: list[TopSender]
+
+
+class ConfusionEntry(BaseModel):
+    original: str
+    corrected: str
+    count: int
+
+
+class ConfusionMatrixResponse(BaseModel):
+    period: str
+    total_corrections: int
+    entries: list[ConfusionEntry]
+
+
+class PerformanceMetrics(BaseModel):
+    period: str
+    avg_processing_time_ms: float
+    review_rate: float
+    classified_by_method: dict[str, int]
+    total_tokens_used: int
+
+
+class HourlyHeatmapEntry(BaseModel):
+    day_of_week: int  # 0 = Monday … 6 = Sunday
+    hour: int  # 0-23
+    count: int
+
+
+class HourlyHeatmapResponse(BaseModel):
+    period: str
+    entries: list[HourlyHeatmapEntry]

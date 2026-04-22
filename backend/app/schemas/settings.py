@@ -17,6 +17,7 @@ class SettingsResponse(BaseModel):
     email_retention_days: int
     phishing_auto_quarantine: bool
     initial_fetch_since: date | None
+    has_api_key: bool  # True if LLM API key is configured
     has_app_password: bool  # True if app_password is set, never expose the value
 
     model_config = {"from_attributes": True}

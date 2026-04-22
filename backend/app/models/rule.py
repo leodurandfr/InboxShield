@@ -17,6 +17,7 @@ class Rule(Base, UUIDMixin, TimestampMixin):
     type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'structured' or 'natural'
     priority: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    category: Mapped[str | None] = mapped_column(String(50))
     conditions: Mapped[dict | None] = mapped_column(JSONB)
     natural_text: Mapped[str | None] = mapped_column(Text)
     actions: Mapped[list] = mapped_column(JSONB, nullable=False)

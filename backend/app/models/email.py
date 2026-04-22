@@ -52,6 +52,7 @@ class Email(Base, UUIDMixin):
     references: Mapped[str | None] = mapped_column(Text)
     from_address: Mapped[str] = mapped_column(String(255), nullable=False)
     from_name: Mapped[str | None] = mapped_column(String(255))
+    reply_to: Mapped[str | None] = mapped_column(String(255))
     to_addresses: Mapped[list | None] = mapped_column(JSONB)
     cc_addresses: Mapped[list | None] = mapped_column(JSONB)
     subject: Mapped[str | None] = mapped_column(Text)

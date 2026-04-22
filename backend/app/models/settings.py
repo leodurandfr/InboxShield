@@ -23,6 +23,7 @@ class Settings(Base):
     retention_days: Mapped[int] = mapped_column(Integer, default=90)
     email_retention_days: Mapped[int] = mapped_column(Integer, default=365)
     phishing_auto_quarantine: Mapped[bool] = mapped_column(Boolean, default=True)
+    initial_fetch_since: Mapped[date | None] = mapped_column(Date)
     app_password: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False

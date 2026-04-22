@@ -18,50 +18,61 @@ Les fichiers manquants ont été identifiés en comparant les imports de `backen
 
 ---
 
-## Phase 1 — Fondations backend (pour que `uvicorn` démarre sans erreur)
+## Phase 1 — Fondations backend ✅ (complétée — l'app importe sans erreur)
 
-Objectif : `python -c "from app.main import app"` réussit.
+Objectif : `python -c "from app.main import app"` réussit. ✅
 
 ### 1.1 Module base de données (`app/db/`)
-- [ ] Créer `app/db/__init__.py`
-- [ ] Créer `app/db/database.py` — engine async SQLAlchemy, session factory (selon `docs/01-ARCHITECTURE.md` §2.3)
-- [ ] Créer `app/db/base.py` — `Base = declarative_base()` + import de tous les models pour Alembic
+- [x] Créer `app/db/__init__.py`
+- [x] Créer `app/db/database.py` — engine async SQLAlchemy, session factory
+- [x] Créer `app/db/base.py` — `Base = DeclarativeBase` + mixins (UUID, Timestamp)
 
 ### 1.2 Dépendances API (`app/api/deps.py`)
-- [ ] Créer `app/api/deps.py` avec `get_db()` dependency (async session yield)
+- [x] Créer `app/api/deps.py` avec `get_db()` dependency (commit-on-success, rollback-on-error)
 
 ### 1.3 Models SQLAlchemy manquants (selon `docs/02-DATABASE-SCHEMA.md`)
-- [ ] `app/models/__init__.py` — réexporter tous les models
-- [ ] `app/models/account.py` — tables `accounts` + `account_settings`
-- [ ] `app/models/action.py` — table `actions`
-- [ ] `app/models/activity_log.py` — table `activity_logs`
-- [ ] `app/models/newsletter.py` — table `newsletters`
-- [ ] `app/models/sender_profile.py` — tables `sender_profiles` + `sender_category_stats`
-- [ ] Vérifier que les 4 existants (`classification`, `email`, `rule`, `settings`) sont alignés avec la spec
+- [x] `app/models/__init__.py` — réexporte tous les models pour Alembic
+- [x] `app/models/account.py` — tables `accounts` + `account_settings`
+- [x] `app/models/action.py` — table `actions`
+- [x] `app/models/activity_log.py` — table `activity_logs`
+- [x] `app/models/newsletter.py` — table `newsletters`
+- [x] `app/models/sender_profile.py` — tables `sender_profiles` + `sender_category_stats`
+- [x] Alignement des 4 existants : ajout de `Email.reply_to`, `Rule.category`, `Settings.initial_fetch_since`
 
 ### 1.4 Schemas Pydantic manquants
-- [ ] `app/schemas/account.py` — `AccountCreate`, `AccountUpdate`, `AccountResponse`
-- [ ] `app/schemas/common.py` — `PaginatedResponse[T]`
+- [x] `app/schemas/account.py` — `AccountCreate`, `AccountUpdate`, `AccountResponse`, `TestConnection*`, `FolderMappingUpdate`, `CategoryActionsUpdate`
+- [x] `app/schemas/common.py` — `PaginatedResponse[T]`
+- [x] `app/schemas/activity.py`, `newsletter.py`, `sender.py`, `review.py`, `thread.py`
+- [x] `app/schemas/analytics.py` enrichi (ConfusionMatrix, PerformanceMetrics, HourlyHeatmap)
+- [x] `app/schemas/system.py` enrichi (OllamaManagerStatus, LLMStatus)
+- [x] `app/schemas/settings.py` : ajout `has_api_key`
 
 ### 1.5 Services manquants
-- [ ] `app/services/encryption.py` — `encrypt()` / `decrypt()` Fernet (clé depuis `settings.encryption_key`)
-- [ ] `app/services/ollama_manager.py` — singleton qui garde un `OllamaProvider` initialisé
-- [ ] `app/services/thread_service.py` — stub minimal (reply tracking est Phase 3 du roadmap)
+- [x] `app/services/encryption.py` — Fernet encrypt/decrypt depuis `settings.encryption_key`
+- [x] `app/services/ollama_manager.py` — stub avec `get_status()` (health HTTP) + `restart()`
+- [x] `app/services/ws_manager.py` — `ConnectionManager` singleton (WebSocket broadcast)
+- [x] `app/services/thread_service.py` — `resolve_or_create_thread`, `normalize_subject`, `update_thread_reply_status`
+- [x] `app/services/threshold_service.py` — `evaluate_and_adjust_threshold` (Phase 3 stub fonctionnel)
+- [x] `app/services/newsletter_service.py` — `compute_newsletter_stats`, `unsubscribe_newsletter` stub
 
-### 1.6 Routeurs API manquants (peuvent être stubs initialement)
-- [ ] `app/api/activity.py` — GET `/` (activity feed)
-- [ ] `app/api/newsletters.py` — GET/POST selon `docs/04-API-ENDPOINTS.md`
-- [ ] `app/api/review.py` — GET/POST approve/correct
-- [ ] `app/api/senders.py` — GET `/` (top senders)
-- [ ] `app/api/threads.py` — GET `/` (stub — Phase 3)
-- [ ] `app/api/websocket.py` — endpoint WebSocket (ou stub)
+### 1.6 Routeurs API manquants
+- [x] `app/api/activity.py` — GET `/` (feed paginé)
+- [x] `app/api/newsletters.py` — list, stats, unsubscribe unitaire + bulk
+- [x] `app/api/review.py` — list, approve, correct, bulk-approve
+- [x] `app/api/senders.py` — list, detail, block/unblock
+- [x] `app/api/threads.py` — list, stats, detail, resolve/ignore
+- [x] `app/api/websocket.py` — endpoint `/ws` avec ping/pong
 
 ### 1.7 Migration initiale Alembic
-- [ ] Vérifier `alembic/env.py` (importe `Base.metadata` de `app/db/base.py`)
-- [ ] `alembic revision --autogenerate -m "initial schema"`
-- [ ] `alembic upgrade head` contre une Postgres locale
+- [x] `alembic.ini` créé + `alembic/script.py.mako` + répertoire `versions/`
+- [x] `alembic/env.py` importe `Base.metadata` via `app.models`
+- [ ] `alembic revision --autogenerate -m "initial schema"` → nécessite une Postgres (Phase 3)
+- [ ] `alembic upgrade head` → nécessite une Postgres (Phase 3)
 
-**Validation Phase 1** : `uvicorn app.main:app --reload` démarre et `GET /api/v1/system/health` retourne `{"status": "healthy"}`.
+### 1.8 Dépendances
+- [x] Ajout de `html2text`, `mail-parser-reply`, `tldextract` dans `pyproject.toml`
+
+**Validation Phase 1** : `python -c "from app.main import app"` réussit ✅. `uvicorn app.main:app` démarre (le scheduler tente la connexion DB et échoue proprement — attendu hors Postgres). Les 60 routes sont enregistrées. Le endpoint `/api/v1/system/health` est fonctionnel mais nécessite PG pour retourner `healthy` (Phase 3).
 
 ---
 

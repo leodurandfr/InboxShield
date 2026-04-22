@@ -22,11 +22,27 @@ class SchedulerInfo(BaseModel):
     next_poll: datetime | None = None
 
 
+class OllamaManagerStatus(BaseModel):
+    running: bool
+    managed_by_us: bool = False
+    pid: int | None = None
+    binary_path: str | None = None
+
+
 class HealthResponse(BaseModel):
     status: str  # "healthy", "degraded", "unhealthy"
     checks: dict  # {"database": ServiceCheck, "ollama": ServiceCheck}
     imap_accounts: list[IMAPAccountCheck]
     scheduler: SchedulerInfo
+    ollama_manager: OllamaManagerStatus | None = None
+
+
+class LLMStatus(BaseModel):
+    configured: bool
+    available: bool
+    provider: str
+    model: str
+    error: str | None = None
 
 
 class SystemStats(BaseModel):
@@ -35,3 +51,4 @@ class SystemStats(BaseModel):
     classifications_today: int
     pending_review: int
     active_accounts: int
+    llm_status: LLMStatus | None = None
