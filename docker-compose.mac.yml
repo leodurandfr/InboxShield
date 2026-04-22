@@ -1,0 +1,21 @@
+# Override pour Mac (Apple Silicon) — Ollama en natif pour les performances GPU (Metal)
+#
+# Usage :
+#   docker compose -f docker-compose.yml -f docker-compose.mac.yml up -d
+#
+# Pré-requis :
+#   brew install ollama
+#   ollama serve          # dans un terminal séparé
+#   ollama pull qwen2.5:7b
+#
+services:
+  backend:
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Désactiver le service Ollama Docker (on utilise le natif)
+  ollama:
+    profiles:
+      - disabled
