@@ -10,6 +10,22 @@ Application open source de gestion intelligente d'emails, auto-hébergée et pri
 
 La spec complète est dans [`docs/`](docs/) — voir en particulier [`00-PROJECT-OVERVIEW.md`](docs/00-PROJECT-OVERVIEW.md) et [`01-ARCHITECTURE.md`](docs/01-ARCHITECTURE.md).
 
+## Prérequis — Ollama (LLM local)
+
+Si vous utilisez Ollama (provider local recommandé sur Mac pour le GPU Metal), installez-le **avant** `docker compose up` via le script fourni :
+
+```bash
+./scripts/install-ollama.sh          # idempotent (Homebrew sur Mac, install.sh officiel sur Linux)
+```
+
+Le script installe Ollama nativement, démarre le service (`brew services` / `systemd`), puis pré-pull le modèle `DEFAULT_OLLAMA_MODEL` défini dans `.env` (défaut `qwen3:8b`).
+
+> **Pourquoi pas Docker pour Ollama sur Mac ?** Le container Linux n'a pas accès au GPU Metal. Ollama natif est 5-10× plus rapide et utilise moins de RAM. Le `docker-compose.mac.yml` pointe donc le backend vers `host.docker.internal:11434`.
+
+Pour désinstaller : `./scripts/uninstall-ollama.sh` (les modèles dans `~/.ollama/` sont conservés).
+
+Si vous utilisez exclusivement un provider cloud (Claude, OpenAI, Mistral), renseignez la clé API correspondante dans `.env` et skippez cette étape.
+
 ## Démarrage rapide (Docker)
 
 ```bash
@@ -18,15 +34,14 @@ cp .env.example .env
 # Générer une clé Fernet et la coller dans ENCRYPTION_KEY :
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
-# 2. Lancer la stack
+# 2. (Si LLM local) Installer Ollama sur l'hôte — voir section « Prérequis »
+./scripts/install-ollama.sh
+
+# 3. Lancer la stack
 docker compose up -d
 
 # (Mac avec Ollama natif — meilleur pour les perfs GPU Metal)
 docker compose -f docker-compose.yml -f docker-compose.mac.yml up -d
-
-# 3. Installer un modèle Ollama
-docker compose exec ollama ollama pull qwen2.5:7b
-# ou, Mac natif : ollama pull qwen2.5:7b
 ```
 
 L'UI est servie sur http://localhost:8080 (Nginx → SPA + proxy `/api/v1/*`).
