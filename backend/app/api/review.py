@@ -17,6 +17,7 @@ from app.schemas.review import (
     BulkApproveResponse,
     BulkApproveResult,
     ReviewCorrectRequest,
+    ReviewStatsResponse,
 )
 from app.services.classifier import approve_classification, correct_classification
 
@@ -83,6 +84,51 @@ async def list_review(
         "per_page": per_page,
         "pages": math.ceil(total / per_page) if per_page else 0,
     }
+
+
+@router.get("/stats", response_model=ReviewStatsResponse)
+async def review_stats(
+    account_id: uuid.UUID | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Aggregate metrics for the review queue badge + dashboard."""
+    base = (
+        select(Classification, Email)
+        .join(Email, Email.id == Classification.email_id)
+        .where(Classification.status == "review")
+    )
+    if account_id:
+        base = base.where(Email.account_id == account_id)
+
+    total = (
+        await db.execute(select(func.count()).select_from(base.subquery()))
+    ).scalar() or 0
+
+    by_cat_query = (
+        select(Classification.category, func.count())
+        .join(Email, Email.id == Classification.email_id)
+        .where(Classification.status == "review")
+        .group_by(Classification.category)
+    )
+    if account_id:
+        by_cat_query = by_cat_query.where(Email.account_id == account_id)
+    rows = (await db.execute(by_cat_query)).all()
+    by_category = {str(category): int(count) for category, count in rows}
+
+    oldest_query = (
+        select(func.min(Email.date))
+        .join(Classification, Classification.email_id == Email.id)
+        .where(Classification.status == "review")
+    )
+    if account_id:
+        oldest_query = oldest_query.where(Email.account_id == account_id)
+    oldest_pending = (await db.execute(oldest_query)).scalar()
+
+    return ReviewStatsResponse(
+        total_pending=total,
+        by_category=by_category,
+        oldest_pending=oldest_pending,
+    )
 
 
 @router.post("/{email_id}/approve")

@@ -62,7 +62,7 @@ async def newsletter_stats(
     return await newsletter_service.compute_newsletter_stats(db, account_id=account_id)
 
 
-@router.post("/unsubscribe", response_model=UnsubscribeResponse)
+@router.post("/bulk-unsubscribe", response_model=UnsubscribeResponse)
 async def bulk_unsubscribe(data: UnsubscribeRequest, db: AsyncSession = Depends(get_db)):
     success = 0
     failed = 0

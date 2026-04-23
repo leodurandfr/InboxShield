@@ -1,8 +1,8 @@
-"""Email threading — stub for Phase 1.
+"""Email threading + reply tracking.
 
-Reply tracking logic (Phase 3) will build on these primitives. For now we
-resolve a thread by Message-ID / In-Reply-To / References and fall back
-to a new thread per email so the scheduler's import graph is valid.
+Resolves threads from Message-ID / In-Reply-To / References / normalized
+subject, and maintains `awaiting_reply` / `awaiting_response` flags so the
+Threads UI can surface conversations that need attention.
 """
 
 import logging
@@ -117,11 +117,86 @@ async def update_thread_reply_status(
     user_email: str | None,
     email_date: datetime | None,
 ) -> None:
-    """Stub — Phase 3 will compute awaiting_reply / awaiting_response here."""
+    """Recompute awaiting_reply / awaiting_response flags after a new email.
+
+    Semantics (see docs/03g-REPLY-TRACKING.md):
+    - email from user → user has replied, now awaits someone else's response
+    - email to user  → someone wrote, user still owes a reply
+    Both flags are mutually exclusive. Non-directional emails (user neither
+    sender nor recipient) just bump email_count + last_email_at.
+    """
     result = await db.execute(select(EmailThread).where(EmailThread.id == thread_id))
     thread = result.scalar_one_or_none()
     if thread is None:
         return
+
+    # Bump counters regardless of direction
     if email_date and (thread.last_email_at is None or email_date > thread.last_email_at):
         thread.last_email_at = email_date
     thread.email_count = (thread.email_count or 0) + 1
+
+    # Update participants list
+    participants = list(thread.participants or [])
+    for addr in _collect_addresses(from_address, to_addresses):
+        if addr and addr not in participants:
+            participants.append(addr)
+    thread.participants = participants or None
+
+    if not user_email:
+        return
+
+    user_lc = user_email.lower()
+    from_lc = (from_address or "").lower()
+    to_list_lc = {
+        addr.lower()
+        for addr in (to_addresses or [])
+        if isinstance(addr, str)
+    }
+
+    is_from_user = from_lc == user_lc
+    is_to_user = user_lc in to_list_lc
+
+    if is_from_user:
+        thread.awaiting_reply = False
+        thread.awaiting_response = True
+        thread.reply_needed_since = email_date
+    elif is_to_user:
+        thread.awaiting_response = False
+        thread.awaiting_reply = True
+        thread.reply_needed_since = email_date
+
+
+def _collect_addresses(
+    from_address: str | None,
+    to_addresses: list | None,
+) -> list[str]:
+    collected: list[str] = []
+    if from_address:
+        collected.append(from_address)
+    if to_addresses:
+        collected.extend(a for a in to_addresses if isinstance(a, str))
+    return collected
+
+
+async def resolve_thread(
+    db: AsyncSession,
+    thread_id: uuid.UUID,
+) -> EmailThread | None:
+    """Mark a thread as resolved (used by Threads UI actions)."""
+    thread = (
+        await db.execute(select(EmailThread).where(EmailThread.id == thread_id))
+    ).scalar_one_or_none()
+    if thread is None:
+        return None
+    thread.awaiting_reply = False
+    thread.awaiting_response = False
+    thread.reply_needed_since = None
+    return thread
+
+
+async def ignore_thread(
+    db: AsyncSession,
+    thread_id: uuid.UUID,
+) -> EmailThread | None:
+    """Same effect as resolve, loggable separately at the caller level."""
+    return await resolve_thread(db, thread_id)

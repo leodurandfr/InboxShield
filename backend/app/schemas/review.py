@@ -1,10 +1,17 @@
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel
 
 
 class ReviewApproveRequest(BaseModel):
     """Optional body — an empty POST is accepted too."""
+
+
+class ReviewStatsResponse(BaseModel):
+    total_pending: int
+    by_category: dict[str, int]
+    oldest_pending: datetime | None = None
 
 
 class ReviewCorrectRequest(BaseModel):
