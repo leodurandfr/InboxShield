@@ -10,7 +10,8 @@ def _cipher() -> Fernet:
     if not key:
         raise RuntimeError(
             "ENCRYPTION_KEY is not set — generate one with "
-            "`python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'`"
+            "`python -c 'from cryptography.fernet import Fernet; "
+            "print(Fernet.generate_key().decode())'`"
         )
     return Fernet(key.encode() if isinstance(key, str) else key)
 

@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,7 +72,7 @@ async def update_sender_stats(
     stats.count += 1
     if is_correction:
         stats.corrected_count += 2  # Double weight for corrections
-    stats.last_seen_at = datetime.now(timezone.utc)
+    stats.last_seen_at = datetime.now(UTC)
 
     # Update profile totals and primary category
     await _refresh_profile_stats(db, profile)
@@ -80,9 +80,7 @@ async def update_sender_stats(
 
 async def _refresh_profile_stats(db: AsyncSession, profile: SenderProfile) -> None:
     """Recalculate total_emails and primary_category from category stats."""
-    stmt = select(SenderCategoryStats).where(
-        SenderCategoryStats.sender_profile_id == profile.id
-    )
+    stmt = select(SenderCategoryStats).where(SenderCategoryStats.sender_profile_id == profile.id)
     result = await db.execute(stmt)
     all_stats = result.scalars().all()
 
@@ -91,7 +89,7 @@ async def _refresh_profile_stats(db: AsyncSession, profile: SenderProfile) -> No
 
     total = sum(s.count for s in all_stats)
     profile.total_emails = total
-    profile.last_email_at = datetime.now(timezone.utc)
+    profile.last_email_at = datetime.now(UTC)
 
     # Find dominant category (weighted: count + corrected_count)
     dominant = max(all_stats, key=lambda s: s.count + s.corrected_count)
@@ -140,7 +138,10 @@ async def try_direct_classification(
     if ratio > 0.8:
         logger.debug(
             "Direct classification for %s: %s (%.0f%%, n=%d)",
-            from_address, dominant.category, ratio * 100, total,
+            from_address,
+            dominant.category,
+            ratio * 100,
+            total,
         )
         return dominant.category
 

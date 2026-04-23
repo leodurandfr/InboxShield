@@ -3,6 +3,7 @@
 import logging
 import re
 import uuid
+from datetime import UTC
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +22,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def _get_field_value(email: Email, classification: Classification | None, field: str) -> str | bool | None:
+def _get_field_value(
+    email: Email, classification: Classification | None, field: str
+) -> str | bool | None:
     """Get the value of a filterable field from email/classification."""
     field_map = {
         "from_address": email.from_address,
@@ -33,16 +36,20 @@ def _get_field_value(email: Email, classification: Classification | None, field:
     }
 
     if classification:
-        field_map.update({
-            "category": classification.category,
-            "is_spam": classification.is_spam,
-            "is_phishing": classification.is_phishing,
-        })
+        field_map.update(
+            {
+                "category": classification.category,
+                "is_spam": classification.is_spam,
+                "is_phishing": classification.is_phishing,
+            }
+        )
 
     return field_map.get(field)
 
 
-def _evaluate_condition(condition: dict, email: Email, classification: Classification | None) -> bool:
+def _evaluate_condition(
+    condition: dict, email: Email, classification: Classification | None
+) -> bool:
     """Evaluate a single condition: {field, op, value}."""
     field = condition.get("field", "")
     op = condition.get("op", "")
@@ -136,7 +143,7 @@ def get_matched_conditions_description(
             op = condition["op"]
             value = condition.get("value", "")
             if _evaluate_condition(condition, email, classification):
-                descriptions.append(f"{field} {op} \"{value}\"")
+                descriptions.append(f'{field} {op} "{value}"')
 
     return descriptions
 
@@ -192,8 +199,9 @@ async def evaluate_rules(
         if matched:
             # Update match stats
             rule.match_count += 1
-            from datetime import datetime, timezone
-            rule.last_matched_at = datetime.now(timezone.utc)
+            from datetime import datetime
+
+            rule.last_matched_at = datetime.now(UTC)
 
             logger.info("Rule '%s' matched email %s", rule.name, email.id)
             return rule, rule.actions

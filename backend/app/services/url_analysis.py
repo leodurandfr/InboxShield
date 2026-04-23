@@ -48,26 +48,60 @@ _tld_extract = TLDExtract(include_psl_private_domains=False)
 
 # Well-known URL shortener domains
 SHORTENER_DOMAINS = {
-    "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd",
-    "buff.ly", "adf.ly", "bl.ink", "lnkd.in", "db.tt", "qr.ae",
-    "rebrand.ly", "short.io", "cutt.ly", "rb.gy", "t.ly", "v.gd",
-    "shorturl.at", "tiny.cc",
+    "bit.ly",
+    "tinyurl.com",
+    "t.co",
+    "goo.gl",
+    "ow.ly",
+    "is.gd",
+    "buff.ly",
+    "adf.ly",
+    "bl.ink",
+    "lnkd.in",
+    "db.tt",
+    "qr.ae",
+    "rebrand.ly",
+    "short.io",
+    "cutt.ly",
+    "rb.gy",
+    "t.ly",
+    "v.gd",
+    "shorturl.at",
+    "tiny.cc",
 }
 
 # Known LEGITIMATE email tracking/redirect service domains.
 # These services wrap legitimate URLs for tracking purposes, so
 # a mismatch between display text and href is expected and NOT suspicious.
 KNOWN_TRACKING_DOMAINS = {
-    "list-manage.com", "mailchimp.com", "sendgrid.net", "mandrillapp.com",
-    "mailgun.net", "sparkpostmail.com", "createsend.com",
-    "cmail19.com", "cmail20.com", "campaign-archive.com", "mcsv.net",
-    "hubspot.com", "hubspotlinks.com", "mktomail.com", "marketo.com",
-    "pardot.com", "eloqua.com", "constantcontact.com", "sailthru.com",
-    "brevo.com", "sendinblue.com",
+    "list-manage.com",
+    "mailchimp.com",
+    "sendgrid.net",
+    "mandrillapp.com",
+    "mailgun.net",
+    "sparkpostmail.com",
+    "createsend.com",
+    "cmail19.com",
+    "cmail20.com",
+    "campaign-archive.com",
+    "mcsv.net",
+    "hubspot.com",
+    "hubspotlinks.com",
+    "mktomail.com",
+    "marketo.com",
+    "pardot.com",
+    "eloqua.com",
+    "constantcontact.com",
+    "sailthru.com",
+    "brevo.com",
+    "sendinblue.com",
     # Sendinblue/Brevo transactional domains (sendibt2, sendibt3, sendibt4, etc.)
-    "sendibt2.com", "sendibt3.com", "sendibt4.com",
+    "sendibt2.com",
+    "sendibt3.com",
+    "sendibt4.com",
     # AWS SES tracking
-    "awstrack.me", "amazonses.com",
+    "awstrack.me",
+    "amazonses.com",
     # Marketing / analytics / CRM platforms used by legitimate senders
     "delight-data.com",  # Delight Data (email marketing analytics)
     "pegacloud.io",  # Pega Cloud (CRM surveys, e.g., Transavia)
@@ -103,8 +137,23 @@ KNOWN_TRACKING_DOMAINS = {
 # in KNOWN_TRACKING_DOMAINS. Otherwise an attacker can use "click.evil.xyz"
 # to bypass all heuristics.
 KNOWN_TRACKING_PREFIXES = {
-    "click.", "track.", "email.", "links.", "link.", "go.", "trk.", "t.",
-    "e.", "r.", "u.", "l.", "m.", "open.", "redirect.", "mailer.", "follow.",
+    "click.",
+    "track.",
+    "email.",
+    "links.",
+    "link.",
+    "go.",
+    "trk.",
+    "t.",
+    "e.",
+    "r.",
+    "u.",
+    "l.",
+    "m.",
+    "open.",
+    "redirect.",
+    "mailer.",
+    "follow.",
 }
 
 # Characters that look like Latin but are from other scripts (homoglyphs)
@@ -125,34 +174,82 @@ HOMOGLYPH_MAP = {
 # Common TLDs for legitimate services (used for subdomain deception check)
 COMMON_LEGITIMATE_DOMAINS = {
     # International tech
-    "google.com", "apple.com", "microsoft.com", "amazon.com", "amazon.fr",
-    "paypal.com", "facebook.com", "instagram.com", "twitter.com",
-    "linkedin.com", "github.com", "netflix.com", "spotify.com",
+    "google.com",
+    "apple.com",
+    "microsoft.com",
+    "amazon.com",
+    "amazon.fr",
+    "paypal.com",
+    "facebook.com",
+    "instagram.com",
+    "twitter.com",
+    "linkedin.com",
+    "github.com",
+    "netflix.com",
+    "spotify.com",
     # French energy / utilities
-    "edf.fr", "edf.com", "engie.fr", "totalenergies.fr",
+    "edf.fr",
+    "edf.com",
+    "engie.fr",
+    "totalenergies.fr",
     # French government / public services
-    "ameli.fr", "impots.gouv.fr", "caf.fr", "pole-emploi.fr", "francetravail.fr",
-    "ants.gouv.fr", "antai.gouv.fr",
+    "ameli.fr",
+    "impots.gouv.fr",
+    "caf.fr",
+    "pole-emploi.fr",
+    "francetravail.fr",
+    "ants.gouv.fr",
+    "antai.gouv.fr",
     # French banks
-    "labanquepostale.fr", "credit-agricole.fr", "bnpparibas.fr",
-    "societegenerale.fr", "lcl.fr", "boursorama.fr", "boursobank.com",
-    "creditmutuel.fr", "caisse-epargne.fr",
+    "labanquepostale.fr",
+    "credit-agricole.fr",
+    "bnpparibas.fr",
+    "societegenerale.fr",
+    "lcl.fr",
+    "boursorama.fr",
+    "boursobank.com",
+    "creditmutuel.fr",
+    "caisse-epargne.fr",
     # French telecom
-    "orange.fr", "sfr.fr", "free.fr", "bouyguestelecom.fr",
+    "orange.fr",
+    "sfr.fr",
+    "free.fr",
+    "bouyguestelecom.fr",
     # French postal / delivery
-    "laposte.fr", "laposte.net", "colissimo.fr", "chronopost.fr",
+    "laposte.fr",
+    "laposte.net",
+    "colissimo.fr",
+    "chronopost.fr",
     # E-commerce
-    "cdiscount.com", "fnac.com", "darty.com", "leboncoin.fr", "vinted.fr",
+    "cdiscount.com",
+    "fnac.com",
+    "darty.com",
+    "leboncoin.fr",
+    "vinted.fr",
 }
 
 # Personal / webmail / free email provider "core" domain names.
 # When the sender is from one of these, URL domain mismatch is expected
 # (people forward emails, share links, etc.) — skip heuristic #11.
 PERSONAL_WEBMAIL_DOMAINS = {
-    "gmail", "googlemail", "outlook", "hotmail", "live", "msn",
-    "yahoo", "ymail", "aol", "icloud", "me", "mac",
-    "protonmail", "proton", "tutanota", "tuta",
-    "gmx", "web",  # gmx.com/net/de/fr, web.de
+    "gmail",
+    "googlemail",
+    "outlook",
+    "hotmail",
+    "live",
+    "msn",
+    "yahoo",
+    "ymail",
+    "aol",
+    "icloud",
+    "me",
+    "mac",
+    "protonmail",
+    "proton",
+    "tutanota",
+    "tuta",
+    "gmx",
+    "web",  # gmx.com/net/de/fr, web.de
     "mail",  # mail.com, mail.ru
     "laposte",  # laposte.net (French free mail)
     "free",  # free.fr
@@ -180,15 +277,24 @@ RELATED_DOMAIN_GROUPS: list[frozenset[str]] = [
     # French employment
     frozenset({"pole-emploi", "francetravail"}),
     # French postal group (includes notification domains)
-    frozenset({"laposte", "colissimo", "chronopost", "digiposte",
-               "notif-colissimo-laposte"}),
+    frozenset({"laposte", "colissimo", "chronopost", "digiposte", "notif-colissimo-laposte"}),
     # French education / research
     frozenset({"education", "ac-paris", "ac-lyon", "ac-versailles", "cnrs", "inria"}),
     # Google ecosystem
     frozenset({"google", "youtube", "gmail", "googlemail", "gstatic", "googleapis"}),
     # Microsoft ecosystem
-    frozenset({"microsoft", "outlook", "live", "hotmail", "office", "office365",
-               "microsoftonline", "accountprotection"}),
+    frozenset(
+        {
+            "microsoft",
+            "outlook",
+            "live",
+            "hotmail",
+            "office",
+            "office365",
+            "microsoftonline",
+            "accountprotection",
+        }
+    ),
     # Apple ecosystem
     frozenset({"apple", "icloud"}),
     # Meta ecosystem
@@ -200,9 +306,7 @@ RELATED_DOMAIN_GROUPS: list[frozenset[str]] = [
 ]
 
 # IPv4 pattern
-IPV4_PATTERN = re.compile(
-    r"^(\d{1,3}\.){3}\d{1,3}$"
-)
+IPV4_PATTERN = re.compile(r"^(\d{1,3}\.){3}\d{1,3}$")
 
 # Redirect/click tracker script patterns in URL path
 REDIRECT_SCRIPT_PATTERNS = re.compile(
@@ -216,25 +320,48 @@ REDIRECT_SCRIPT_PATTERNS = re.compile(
 
 # URL query parameter names commonly used for affiliate/spam tracking
 AFFILIATE_SPAM_PARAMS = {
-    "aff_id", "affiliate_id", "offer_id", "campaign_id", "click_id",
-    "sub_id", "subid", "s1", "s2", "s3", "s4", "s5",
-    "clickid", "affid", "pid", "oid", "tid",
+    "aff_id",
+    "affiliate_id",
+    "offer_id",
+    "campaign_id",
+    "click_id",
+    "sub_id",
+    "subid",
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "clickid",
+    "affid",
+    "pid",
+    "oid",
+    "tid",
 }
 
 # URL query parameter names that may contain encoded URLs
 URL_CARRYING_PARAMS = {
-    "u", "url", "link", "redirect", "goto", "dest", "destination",
-    "target", "out", "redir", "ref", "return", "next", "continue",
+    "u",
+    "url",
+    "link",
+    "redirect",
+    "goto",
+    "dest",
+    "destination",
+    "target",
+    "out",
+    "redir",
+    "ref",
+    "return",
+    "next",
+    "continue",
 }
 
 # Email pattern for detecting email addresses in URL parameters
-EMAIL_IN_URL_PATTERN = re.compile(
-    r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-)
+EMAIL_IN_URL_PATTERN = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 
 # Common English vowels for entropy check
 VOWELS = set("aeiouy")
-CONSONANTS = set("bcdfghjklmnpqrstvwxz")
 
 
 # ---------------------------------------------------------------------------
@@ -270,9 +397,7 @@ class UrlAnalysisResult:
         if not self.suspicious_urls:
             # Deduplicate domains for readability
             unique_domains = sorted(set(self.all_domains))
-            lines.append(
-                f"Domaines : {', '.join(unique_domains[:10])}."
-            )
+            lines.append(f"Domaines : {', '.join(unique_domains[:10])}.")
             lines.append("Aucune URL suspecte détectée.")
         else:
             lines.append(f"⚠ {len(self.suspicious_urls)} URL(s) SUSPECTE(S) :")
@@ -312,11 +437,13 @@ def extract_urls_from_html(html: str) -> list[ExtractedUrl]:
         display_text = a_tag.get_text(strip=True)
         domain = _extract_domain(href)
 
-        urls.append(ExtractedUrl(
-            href=href,
-            display_text=display_text,
-            domain=domain or "",
-        ))
+        urls.append(
+            ExtractedUrl(
+                href=href,
+                display_text=display_text,
+                domain=domain or "",
+            )
+        )
 
     return urls
 
@@ -360,8 +487,7 @@ def analyze_urls(
             actual_clean = url.domain.lower().removeprefix("www.")
             if display_clean != actual_clean and not _is_tracking_redirect(url.domain):
                 reasons.append(
-                    f"Lien trompeur : affiche \"{display_domain}\" "
-                    f"mais pointe vers \"{url.domain}\""
+                    f'Lien trompeur : affiche "{display_domain}" mais pointe vers "{url.domain}"'
                 )
 
         # 2. Homoglyphs in domain
@@ -375,17 +501,12 @@ def analyze_urls(
 
         # 3. URL shortener
         if url.domain and url.domain.lower() in SHORTENER_DOMAINS:
-            reasons.append(
-                f"Raccourcisseur d'URL ({url.domain}) — "
-                f"masque la destination réelle"
-            )
+            reasons.append(f"Raccourcisseur d'URL ({url.domain}) — masque la destination réelle")
 
         # 4. IP address instead of domain (skip localhost/loopback)
         if url.domain and IPV4_PATTERN.match(url.domain):
             if not url.domain.startswith(("127.", "0.", "10.", "192.168.", "172.")):
-                reasons.append(
-                    f"URL pointant vers une adresse IP directe : {url.domain}"
-                )
+                reasons.append(f"URL pointant vers une adresse IP directe : {url.domain}")
 
         # 5. Deceptive subdomain (paypal.com.evil.xyz)
         if url.domain:
@@ -450,12 +571,14 @@ def analyze_urls(
         # Transavia) frequently use HTTP links in email footers.
 
         if reasons:
-            result.suspicious_urls.append({
-                "url": url.href[:200],
-                "display_text": url.display_text[:100] if url.display_text else "",
-                "domain": url.domain,
-                "reasons": reasons,
-            })
+            result.suspicious_urls.append(
+                {
+                    "url": url.href[:200],
+                    "display_text": url.display_text[:100] if url.display_text else "",
+                    "domain": url.domain,
+                    "reasons": reasons,
+                }
+            )
 
     result.has_suspicious = len(result.suspicious_urls) > 0
     return result
@@ -526,7 +649,7 @@ def _is_tracking_redirect(domain: str) -> bool:
     # e.g., "click.evil-phishing.xyz" -> prefix "click." + parent unknown -> False
     for prefix in KNOWN_TRACKING_PREFIXES:
         if domain_lower.startswith(prefix):
-            parent = domain_lower[len(prefix):]
+            parent = domain_lower[len(prefix) :]
             for tracking_domain in KNOWN_TRACKING_DOMAINS:
                 if parent == tracking_domain or parent.endswith("." + tracking_domain):
                     return True
@@ -539,9 +662,7 @@ def _find_homoglyphs(domain: str) -> list[str]:
     found = []
     for char in domain:
         if char in HOMOGLYPH_MAP:
-            found.append(
-                f"'{char}' (U+{ord(char):04X}, ressemble à '{HOMOGLYPH_MAP[char]}')"
-            )
+            found.append(f"'{char}' (U+{ord(char):04X}, ressemble à '{HOMOGLYPH_MAP[char]}')")
         elif ord(char) > 127:
             cat = unicodedata.category(char)
             if cat.startswith("L"):
@@ -578,8 +699,8 @@ def _check_deceptive_subdomain(domain: str) -> str | None:
 
         if legit_main in subdomain and real_domain != legit:
             return (
-                f"Sous-domaine trompeur : \"{domain}\" utilise "
-                f"\"{legit}\" comme sous-domaine mais le vrai domaine est \"{real_domain}\""
+                f'Sous-domaine trompeur : "{domain}" utilise '
+                f'"{legit}" comme sous-domaine mais le vrai domaine est "{real_domain}"'
             )
 
     return None
@@ -621,7 +742,7 @@ def _check_base64_urls(href: str) -> list[str]:
             decoded_url = _try_decode_base64(cleaned)
             if decoded_url and decoded_url.startswith(("http://", "https://")):
                 decoded_domain = _extract_domain(decoded_url)
-                detail = f"\"{decoded_domain}\"" if decoded_domain else f"\"{decoded_url[:60]}\""
+                detail = f'"{decoded_domain}"' if decoded_domain else f'"{decoded_url[:60]}"'
 
                 reasons.append(
                     f"URL encodée en base64 dans le paramètre '{param_name}' — "
@@ -632,15 +753,14 @@ def _check_base64_urls(href: str) -> list[str]:
                 if decoded_domain:
                     gibberish = _check_gibberish_domain(decoded_domain)
                     if gibberish:
-                        reasons.append(
-                            f"La destination décodée a un domaine suspect : {gibberish}"
-                        )
+                        reasons.append(f"La destination décodée a un domaine suspect : {gibberish}")
 
                     # Check for affiliate params in decoded URL
                     aff = _check_affiliate_params(decoded_url)
                     if aff:
                         reasons.append(
-                            f"La destination décodée contient des paramètres d'affiliation spam : {aff}"
+                            "La destination décodée contient des paramètres "
+                            f"d'affiliation spam : {aff}"
                         )
 
     return reasons
@@ -691,7 +811,8 @@ def _check_email_in_url(href: str) -> list[str]:
         if emails_found:
             # Filter out obvious false positives (e.g., example.com in documentation URLs)
             real_emails = [
-                e for e in emails_found
+                e
+                for e in emails_found
                 if not e.endswith(("@example.com", "@example.org", "@test.com"))
             ]
             if real_emails:
@@ -834,7 +955,8 @@ def _check_gibberish_domain(domain: str) -> str | None:
     # A domain with mixed digits and letters where digits aren't just a
     # version number (e.g., "web2" is ok, "dfhv4y" is suspicious)
     mixed_suspicious = (
-        has_digits and has_letters
+        has_digits
+        and has_letters
         and digit_count >= 1
         and len(main) <= 8
         and not main.endswith(("24", "365", "360", "247"))  # common suffixes
@@ -844,7 +966,6 @@ def _check_gibberish_domain(domain: str) -> str | None:
     letters_only = [c for c in main if c.isalpha()]
     if letters_only:
         vowel_count = sum(1 for c in letters_only if c in VOWELS)
-        consonant_count = sum(1 for c in letters_only if c in CONSONANTS)
         vowel_ratio = vowel_count / len(letters_only) if letters_only else 0.5
 
         # Natural English/French words have ~35-45% vowels
@@ -868,7 +989,7 @@ def _check_gibberish_domain(domain: str) -> str | None:
     if signals >= 2:
         return (
             f"Domaine suspect (possiblement généré aléatoirement) : "
-            f"\"{domain}\" — nom de domaine inhabituel"
+            f'"{domain}" — nom de domaine inhabituel'
         )
 
     return None
@@ -917,10 +1038,7 @@ def _check_affiliate_params(href: str) -> str | None:
 
     # Need at least 2 affiliate params to flag (single ones could be coincidence)
     if len(found_params) >= 2:
-        return (
-            f"Paramètres d'affiliation/spam dans l'URL : "
-            f"{', '.join(found_params[:5])}"
-        )
+        return f"Paramètres d'affiliation/spam dans l'URL : {', '.join(found_params[:5])}"
 
     return None
 
@@ -1018,37 +1136,79 @@ def _check_sender_domain_mismatch(
 
     # Don't flag common CDN / static asset / auth / social domains
     safe_third_party = {
-        "cloudfront.net", "cloudinary.com", "googleapis.com", "gstatic.com",
-        "googleusercontent.com", "gravatar.com", "wp.com", "imgur.com",
-        "fbcdn.net", "twimg.com", "akamaized.net", "fastly.net",
-        "cloudflare.com", "cdn.jsdelivr.net", "unpkg.com",
-        "recaptcha.net", "hcaptcha.com",
+        "cloudfront.net",
+        "cloudinary.com",
+        "googleapis.com",
+        "gstatic.com",
+        "googleusercontent.com",
+        "gravatar.com",
+        "wp.com",
+        "imgur.com",
+        "fbcdn.net",
+        "twimg.com",
+        "akamaized.net",
+        "fastly.net",
+        "cloudflare.com",
+        "cdn.jsdelivr.net",
+        "unpkg.com",
+        "recaptcha.net",
+        "hcaptcha.com",
         # Social login / OAuth
-        "accounts.google.com", "login.microsoftonline.com",
-        "appleid.apple.com", "facebook.com",
+        "accounts.google.com",
+        "login.microsoftonline.com",
+        "appleid.apple.com",
+        "facebook.com",
         # Microsoft URL shortener + services
-        "aka.ms", "office.com", "sharepoint.com",
+        "aka.ms",
+        "office.com",
+        "sharepoint.com",
         "safelinks.protection.outlook.com",
         # Apple ecosystem (broad — covers itunes, developer, support, etc.)
         "apple.com",
         # WhatsApp / Meta
         "whatsapp.com",
         # Common newsletter / content link targets
-        "youtube.com", "youtu.be", "medium.com", "substack.com",
-        "wordpress.com", "github.com", "gitlab.com", "bitbucket.org",
-        "stackoverflow.com", "reddit.com", "x.com", "twitter.com",
-        "linkedin.com", "instagram.com", "pinterest.com", "tiktok.com",
-        "vimeo.com", "dailymotion.com", "figma.com", "notion.so",
-        "docs.google.com", "drive.google.com", "forms.google.com",
-        "maps.google.com", "play.google.com",
+        "youtube.com",
+        "youtu.be",
+        "medium.com",
+        "substack.com",
+        "wordpress.com",
+        "github.com",
+        "gitlab.com",
+        "bitbucket.org",
+        "stackoverflow.com",
+        "reddit.com",
+        "x.com",
+        "twitter.com",
+        "linkedin.com",
+        "instagram.com",
+        "pinterest.com",
+        "tiktok.com",
+        "vimeo.com",
+        "dailymotion.com",
+        "figma.com",
+        "notion.so",
+        "docs.google.com",
+        "drive.google.com",
+        "forms.google.com",
+        "maps.google.com",
+        "play.google.com",
         # App stores
-        "apps.apple.com", "itunes.apple.com",
+        "apps.apple.com",
+        "itunes.apple.com",
         # Survey / feedback platforms
-        "surveymonkey.com", "typeform.com", "google.com",
+        "surveymonkey.com",
+        "typeform.com",
+        "google.com",
         # Communication platforms
-        "slack.com", "discord.com", "zoom.us", "teams.microsoft.com",
+        "slack.com",
+        "discord.com",
+        "zoom.us",
+        "teams.microsoft.com",
         # French services
-        "doctolib.fr", "blablacar.fr", "blablacar.com",
+        "doctolib.fr",
+        "blablacar.fr",
+        "blablacar.com",
     }
     for safe in safe_third_party:
         if url_lower == safe or url_lower.endswith("." + safe):
@@ -1169,7 +1329,6 @@ def _check_gibberish_path(href: str, sender_domain: str | None = None) -> str | 
                 )
 
     return None
-
 
 
 # _check_no_tls removed — too many false positives.

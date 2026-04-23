@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -9,8 +9,15 @@ from app.db.base import Base, TimestampMixin, UUIDMixin
 
 # Valid categories
 CATEGORIES = [
-    "important", "work", "personal", "newsletter", "promotion",
-    "notification", "spam", "phishing", "transactional",
+    "important",
+    "work",
+    "personal",
+    "newsletter",
+    "promotion",
+    "notification",
+    "spam",
+    "phishing",
+    "transactional",
 ]
 
 

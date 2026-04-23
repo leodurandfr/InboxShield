@@ -1,17 +1,17 @@
 """Shared fixtures and factories for backend tests."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
 from cryptography.fernet import Fernet
+from sqlalchemy.orm import attributes
 
 from app.llm.base import BaseLLMProvider
 from app.models.classification import Classification
 from app.models.email import Email
 from app.models.rule import Rule
-
 
 # ---------------------------------------------------------------------------
 # Test encryption key (deterministic, for tests only)
@@ -52,7 +52,9 @@ def mock_llm():
     llm.provider_name = "test"
     llm.get_model_name.return_value = "test-model"
     llm.is_available.return_value = True
-    llm.generate.return_value = '{"category": "newsletter", "confidence": 0.9, "explanation": "test"}'
+    llm.generate.return_value = (
+        '{"category": "newsletter", "confidence": 0.9, "explanation": "test"}'
+    )
     return llm
 
 
@@ -90,7 +92,7 @@ def make_email(**overrides) -> Email:
         "body_html_excerpt": None,
         "has_attachments": False,
         "attachment_names": [],
-        "date": datetime.now(timezone.utc),
+        "date": datetime.now(UTC),
         "folder": "INBOX",
         "is_read": False,
         "is_flagged": False,

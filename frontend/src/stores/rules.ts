@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '@/lib/api'
-import type { Email, PaginatedResponse, Rule } from '@/lib/types'
+import type { Rule } from '@/lib/types'
 
 export const useRulesStore = defineStore('rules', () => {
   const rules = ref<Rule[]>([])

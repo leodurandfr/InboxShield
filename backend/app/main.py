@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.services.ollama_manager import ollama_manager
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 logger = logging.getLogger(__name__)
@@ -43,9 +42,20 @@ app.add_middleware(
 
 
 # API routers
-from app.api import accounts, activity, analytics, emails, newsletters, review, rules, senders, threads, websocket
+from app.api import (
+    accounts,
+    activity,
+    analytics,
+    emails,
+    newsletters,
+    review,
+    rules,
+    senders,
+    system,
+    threads,
+    websocket,
+)
 from app.api import settings as settings_api
-from app.api import system
 
 app.include_router(websocket.router, prefix="/api/v1")
 app.include_router(accounts.router, prefix="/api/v1/accounts", tags=["accounts"])

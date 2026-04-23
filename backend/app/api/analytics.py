@@ -1,17 +1,14 @@
 """API routes for analytics and statistics."""
 
-import csv
-import io
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import StreamingResponse
-from sqlalchemy import case, cast, extract, func, select, Date
+from sqlalchemy import Date, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.models.classification import Classification, Correction
+from app.models.classification import Classification
 from app.models.email import Email
 from app.models.newsletter import Newsletter
 from app.models.sender_profile import SenderProfile
@@ -19,12 +16,7 @@ from app.schemas.analytics import (
     AnalyticsOverview,
     CategoriesResponse,
     CategoryBreakdown,
-    ConfusionEntry,
-    ConfusionMatrixResponse,
     DailyVolume,
-    HourlyHeatmapEntry,
-    HourlyHeatmapResponse,
-    PerformanceMetrics,
     TopSender,
     TopSendersResponse,
     VolumeResponse,
@@ -35,7 +27,7 @@ router = APIRouter()
 
 def _period_start(period: str) -> datetime:
     """Get the start datetime for a period string."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if period == "7d":
         return now - timedelta(days=7)
     if period == "30d":
@@ -58,22 +50,18 @@ async def analytics_overview(
 ):
     """Get high-level analytics overview."""
     since = _period_start(period)
-    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
     base = select(Email)
     if account_id:
         base = base.where(Email.account_id == account_id)
 
     # Total emails in period
-    total_q = select(func.count()).select_from(
-        base.where(Email.date >= since).subquery()
-    )
+    total_q = select(func.count()).select_from(base.where(Email.date >= since).subquery())
     emails_received = (await db.execute(total_q)).scalar() or 0
 
     # Emails today
-    today_q = select(func.count()).select_from(
-        base.where(Email.date >= today_start).subquery()
-    )
+    today_q = select(func.count()).select_from(base.where(Email.date >= today_start).subquery())
     emails_today = (await db.execute(today_q)).scalar() or 0
 
     # Review pending

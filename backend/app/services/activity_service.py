@@ -31,6 +31,7 @@ async def log_activity(
 
 # Convenience functions for common events
 
+
 async def log_email_classified(
     db: AsyncSession,
     account_id: uuid.UUID,
@@ -45,7 +46,11 @@ async def log_email_classified(
         title=f"Email de {from_address} classé \u00ab {category} \u00bb ({classified_by})",
         account_id=account_id,
         email_id=email_id,
-        details={"category": category, "classified_by": classified_by, "from_address": from_address},
+        details={
+            "category": category,
+            "classified_by": classified_by,
+            "from_address": from_address,
+        },
     )
 
 
@@ -129,7 +134,10 @@ async def log_review_corrected(
     return await log_activity(
         db,
         event_type="review_corrected",
-        title=f"Classification corrig\u00e9e \u2014 {from_address} : {original_category} \u2192 {corrected_category}",
+        title=(
+            f"Classification corrig\u00e9e \u2014 {from_address} : "
+            f"{original_category} \u2192 {corrected_category}"
+        ),
         severity="success",
         account_id=account_id,
         email_id=email_id,

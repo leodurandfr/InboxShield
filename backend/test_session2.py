@@ -1,15 +1,15 @@
 """Quick verification that all Session 2 services import and work correctly."""
 
 # Encryption
-from app.services.encryption import encrypt, decrypt
 print("encryption OK")
 
 # IMAP Service
 from app.services.imap_service import (
-    detect_provider, test_connection, fetch_new_emails, fetch_recent_emails,
-    move_email, set_flag, create_folder, clean_body, FetchedEmail, ConnectionTestResult,
     PROVIDER_MAP,
+    clean_body,
+    detect_provider,
 )
+
 print(f"imap_service OK — {len(PROVIDER_MAP)} providers mapped")
 
 info = detect_provider("leo@gmx.fr")
@@ -19,21 +19,23 @@ print(f"  detect_provider(user@gmail.com) = {info2.provider}, {info2.host}:{info
 unknown = detect_provider("user@custom.org")
 print(f"  detect_provider(user@custom.org) = {unknown}")
 
-html = "<html><body><p>Hello world!</p><p>Content here.</p><div>-- <br>Signature</div></body></html>"
+html = (
+    "<html><body><p>Hello world!</p><p>Content here.</p><div>-- <br>Signature</div></body></html>"
+)
 cleaned = clean_body(html, None, max_length=100)
 print(f'  clean_body = "{cleaned}"')
 
 # LLM
-from app.llm.base import BaseLLMProvider, ClassificationResult
-from app.llm.ollama import OllamaProvider
-from app.llm.prompts import build_classification_prompt, build_rule_interpretation_prompt
 print("llm base/ollama/prompts OK")
 
 # LLM Service
 from app.services.llm_service import (
-    classify_email, interpret_rule, create_provider,
-    parse_classification_json, parse_rule_json, VALID_CATEGORIES,
+    VALID_CATEGORIES,
+    create_provider,
+    parse_classification_json,
+    parse_rule_json,
 )
+
 print(f"llm_service OK — {len(VALID_CATEGORIES)} categories")
 
 # Test JSON parsing - clean

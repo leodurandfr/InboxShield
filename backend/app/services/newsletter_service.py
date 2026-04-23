@@ -3,7 +3,7 @@
 import logging
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiosmtplib
 import httpx
@@ -86,21 +86,21 @@ async def compute_newsletter_stats(
     if account_id:
         base = base.where(Newsletter.account_id == account_id)
 
-    total = (
-        await db.execute(select(func.count()).select_from(base.subquery()))
-    ).scalar() or 0
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar() or 0
 
     subscribed = (
         await db.execute(
-            select(func.count())
-            .select_from(base.where(Newsletter.subscription_status == "subscribed").subquery())
+            select(func.count()).select_from(
+                base.where(Newsletter.subscription_status == "subscribed").subquery()
+            )
         )
     ).scalar() or 0
 
     unsubscribed = (
         await db.execute(
-            select(func.count())
-            .select_from(base.where(Newsletter.subscription_status == "unsubscribed").subquery())
+            select(func.count()).select_from(
+                base.where(Newsletter.subscription_status == "unsubscribed").subquery()
+            )
         )
     ).scalar() or 0
 
@@ -114,8 +114,7 @@ async def compute_newsletter_stats(
 
     never_read = (
         await db.execute(
-            select(func.count())
-            .select_from(base.where(Newsletter.total_read == 0).subquery())
+            select(func.count()).select_from(base.where(Newsletter.total_read == 0).subquery())
         )
     ).scalar() or 0
 
@@ -170,7 +169,7 @@ async def unsubscribe_newsletter(
 
     if outcome["status"] == "success":
         newsletter.subscription_status = "unsubscribed"
-        newsletter.unsubscribed_at = datetime.now(timezone.utc)
+        newsletter.unsubscribed_at = datetime.now(UTC)
     else:
         newsletter.subscription_status = "failed"
 
@@ -191,7 +190,10 @@ async def _try_http_post(url: str) -> dict:
         return {"status": "failed", "message": f"Erreur HTTP : {exc}"}
 
     if resp.status_code in (200, 202, 204):
-        return {"status": "success", "message": f"Désinscription confirmée (HTTP {resp.status_code})"}
+        return {
+            "status": "success",
+            "message": f"Désinscription confirmée (HTTP {resp.status_code})",
+        }
     return {
         "status": "failed",
         "message": f"Réponse inattendue du serveur (HTTP {resp.status_code})",
@@ -248,12 +250,7 @@ async def _try_mailto(
         logger.warning("SMTP credential decrypt failed for %s: %s", account.email, exc)
         return {"status": "failed", "message": "Erreur de déchiffrement SMTP"}
 
-    message = (
-        f"From: {account.email}\r\n"
-        f"To: {target}\r\n"
-        f"Subject: unsubscribe\r\n"
-        f"\r\n"
-    )
+    message = f"From: {account.email}\r\nTo: {target}\r\nSubject: unsubscribe\r\n\r\n"
 
     try:
         await aiosmtplib.send(
@@ -321,19 +318,13 @@ async def detect_or_update_newsletter(
 
     if unsubscribe_info:
         existing.unsubscribe_link = unsubscribe_info.get("link") or existing.unsubscribe_link
-        existing.unsubscribe_mailto = (
-            unsubscribe_info.get("mailto") or existing.unsubscribe_mailto
-        )
-        existing.unsubscribe_method = (
-            unsubscribe_info.get("method") or existing.unsubscribe_method
-        )
+        existing.unsubscribe_mailto = unsubscribe_info.get("mailto") or existing.unsubscribe_mailto
+        existing.unsubscribe_method = unsubscribe_info.get("method") or existing.unsubscribe_method
 
     existing.total_received = (existing.total_received or 0) + 1
     if is_read:
         existing.total_read = (existing.total_read or 0) + 1
-    if email_date and (
-        existing.last_received_at is None or email_date > existing.last_received_at
-    ):
+    if email_date and (existing.last_received_at is None or email_date > existing.last_received_at):
         existing.last_received_at = email_date
 
     return existing

@@ -6,17 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-type CategoryKey =
-  | 'important'
-  | 'work'
-  | 'personal'
-  | 'newsletter'
-  | 'promotion'
-  | 'notification'
-  | 'spam'
-  | 'phishing'
-  | 'transactional'
-
 interface CategoryMeta {
   label: string
   bgClass: string

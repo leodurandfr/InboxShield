@@ -60,29 +60,28 @@ async def thread_stats(
     if account_id:
         base = base.where(EmailThread.account_id == account_id)
 
-    total = (
-        await db.execute(select(func.count()).select_from(base.subquery()))
-    ).scalar() or 0
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar() or 0
 
     awaiting_reply = (
         await db.execute(
-            select(func.count())
-            .select_from(base.where(EmailThread.awaiting_reply.is_(True)).subquery())
+            select(func.count()).select_from(
+                base.where(EmailThread.awaiting_reply.is_(True)).subquery()
+            )
         )
     ).scalar() or 0
 
     awaiting_response = (
         await db.execute(
-            select(func.count())
-            .select_from(base.where(EmailThread.awaiting_response.is_(True)).subquery())
+            select(func.count()).select_from(
+                base.where(EmailThread.awaiting_response.is_(True)).subquery()
+            )
         )
     ).scalar() or 0
 
     oldest = (
         await db.execute(
             base.where(
-                (EmailThread.awaiting_reply.is_(True))
-                | (EmailThread.awaiting_response.is_(True))
+                (EmailThread.awaiting_reply.is_(True)) | (EmailThread.awaiting_response.is_(True))
             )
             .order_by(EmailThread.reply_needed_since.asc().nullslast())
             .limit(1)

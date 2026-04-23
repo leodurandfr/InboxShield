@@ -64,10 +64,7 @@ class MistralProvider(BaseLLMProvider):
         """List models from the Mistral API."""
         try:
             response = await self._client.models.list_async()
-            return [
-                {"name": m.id, "size": None}
-                for m in sorted(response.data, key=lambda m: m.id)
-            ]
+            return [{"name": m.id, "size": None} for m in sorted(response.data, key=lambda m: m.id)]
         except Exception:
             logger.exception("Failed to list Mistral models")
             return [{"name": m["name"], "size": m["size"]} for m in MISTRAL_MODELS]

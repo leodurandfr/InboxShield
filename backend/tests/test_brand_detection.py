@@ -1,15 +1,11 @@
 """Tests for brand impersonation detection — pure functions."""
 
-import pytest
-
 from app.services.brand_detection import (
     BrandCheckResult,
-    check_brand_impersonation,
-    _check_fake_domain_in_local_part,
-    _keyword_matches,
     _domain_is_legitimate,
+    _keyword_matches,
+    check_brand_impersonation,
 )
-
 
 # ---------------------------------------------------------------------------
 # check_brand_impersonation

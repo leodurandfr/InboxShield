@@ -5,7 +5,6 @@ import {
   Mail,
   CheckCircle2,
   ListFilter,
-  MessageSquare,
   Newspaper,
   Users,
   BarChart3,

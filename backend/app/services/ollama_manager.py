@@ -88,9 +88,7 @@ class OllamaManager:
         url = f"{settings.ollama_base_url}/api/pull"
         try:
             async with httpx.AsyncClient(timeout=None) as client:
-                async with client.stream(
-                    "POST", url, json={"name": name, "stream": True}
-                ) as resp:
+                async with client.stream("POST", url, json={"name": name, "stream": True}) as resp:
                     if resp.status_code != 200:
                         logger.warning("pull_model(%s): HTTP %s", name, resp.status_code)
                         return False
@@ -118,9 +116,7 @@ class OllamaManager:
         """Lower-level streaming helper — yields each progress event."""
         url = f"{settings.ollama_base_url}/api/pull"
         async with httpx.AsyncClient(timeout=None) as client:
-            async with client.stream(
-                "POST", url, json={"name": name, "stream": True}
-            ) as resp:
+            async with client.stream("POST", url, json={"name": name, "stream": True}) as resp:
                 if resp.status_code != 200:
                     return
                 async for line in resp.aiter_lines():

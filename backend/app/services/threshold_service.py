@@ -6,7 +6,7 @@ it returns a no-op result.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,12 +20,12 @@ _LOWER_BOUND = 0.5
 _UPPER_BOUND = 0.95
 _STEP = 0.03
 _HIGH_CORRECTION_RATE = 0.15  # > 15% → raise threshold
-_LOW_CORRECTION_RATE = 0.05   # < 5% → lower threshold
+_LOW_CORRECTION_RATE = 0.05  # < 5% → lower threshold
 
 
 async def evaluate_and_adjust_threshold(db: AsyncSession) -> dict:
     """Look at the last 7 days, compare corrections vs classifications, adjust."""
-    since = datetime.now(timezone.utc) - timedelta(days=7)
+    since = datetime.now(UTC) - timedelta(days=7)
 
     total_classified = (
         await db.execute(
@@ -51,9 +51,7 @@ async def evaluate_and_adjust_threshold(db: AsyncSession) -> dict:
 
     rate = total_corrected / total_classified
 
-    settings = (
-        await db.execute(select(Settings).where(Settings.id == 1))
-    ).scalar_one_or_none()
+    settings = (await db.execute(select(Settings).where(Settings.id == 1))).scalar_one_or_none()
     if settings is None:
         return {"status": "skipped", "reason": "no_settings"}
 

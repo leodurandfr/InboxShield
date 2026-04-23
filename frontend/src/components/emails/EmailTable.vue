@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Email } from '@/lib/types'
 import { CATEGORY_CONFIG, formatRelativeDate } from '@/lib/utils'
-import { Mail, Loader2 } from 'lucide-vue-next'
+import { Mail } from 'lucide-vue-next'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'

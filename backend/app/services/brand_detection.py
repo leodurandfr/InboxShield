@@ -29,7 +29,6 @@ BRAND_DATABASE: dict[str, list[str]] = {
     "edf": ["edf.fr", "edf.com"],
     "engie": ["engie.fr", "engie.com"],
     "totalenergies": ["totalenergies.fr", "totalenergies.com"],
-
     # --- French government / public services ---
     "ameli": ["ameli.fr", "assurance-maladie.fr"],
     "impots": ["impots.gouv.fr", "dgfip.finances.gouv.fr"],
@@ -39,7 +38,6 @@ BRAND_DATABASE: dict[str, list[str]] = {
     "cpam": ["ameli.fr", "assurance-maladie.fr"],
     "ants": ["ants.gouv.fr"],
     "antai": ["antai.gouv.fr"],
-
     # --- French banks ---
     "banque postale": ["labanquepostale.fr"],
     "la banque postale": ["labanquepostale.fr"],
@@ -56,18 +54,15 @@ BRAND_DATABASE: dict[str, list[str]] = {
     "caisse d'épargne": ["caisse-epargne.fr"],
     "credit mutuel": ["creditmutuel.fr"],
     "crédit mutuel": ["creditmutuel.fr"],
-
     # --- French telecom ---
     "orange": ["orange.fr", "orange.com"],
     "sfr": ["sfr.fr", "sfr.com"],
     "free": ["free.fr", "free-mobile.fr", "iliad.fr"],
     "bouygues telecom": ["bouyguestelecom.fr"],
-
     # --- French postal / delivery ---
     "la poste": ["laposte.fr", "laposte.net", "colissimo.fr", "notif-colissimo-laposte.info"],
     "colissimo": ["laposte.fr", "colissimo.fr", "notif-colissimo-laposte.info"],
     "chronopost": ["chronopost.fr"],
-
     # --- International tech ---
     "paypal": ["paypal.com", "paypal.fr"],
     "amazon": ["amazon.fr", "amazon.com", "amazon.de", "amazon.co.uk", "amazonses.com"],
@@ -81,20 +76,17 @@ BRAND_DATABASE: dict[str, list[str]] = {
     "whatsapp": ["whatsapp.com", "facebookmail.com"],
     "linkedin": ["linkedin.com"],
     "twitter": ["twitter.com", "x.com"],
-
     # --- E-commerce ---
     "cdiscount": ["cdiscount.com"],
     "fnac": ["fnac.com", "fnacspectacles.com", "fnacdarty.com"],
     "darty": ["darty.com", "fnacdarty.com"],
     "leboncoin": ["leboncoin.fr"],
     "vinted": ["vinted.fr", "vinted.com"],
-
     # --- Shipping ---
     "dhl": ["dhl.com", "dhl.fr", "dhl.de"],
     "ups": ["ups.com"],
     "fedex": ["fedex.com"],
     "mondial relay": ["mondialrelay.fr"],
-
     # --- German / European retail & brands ---
     "bauhaus": ["bauhaus.info", "bauhaus.de", "bauhaus.at", "bauhaus.ch"],
     "lidl": ["lidl.de", "lidl.fr", "lidl.com"],
@@ -104,7 +96,6 @@ BRAND_DATABASE: dict[str, list[str]] = {
     "otto": ["otto.de"],
     "zalando": ["zalando.de", "zalando.fr", "zalando.com"],
     "dm": ["dm.de"],
-
     # --- German banks ---
     "sparkasse": ["sparkasse.de"],
     "deutsche bank": ["deutsche-bank.de", "db.com"],
@@ -113,12 +104,10 @@ BRAND_DATABASE: dict[str, list[str]] = {
     "postbank": ["postbank.de"],
     "ing": ["ing.de", "ing.com"],
     "n26": ["n26.com"],
-
     # --- German telecom ---
     "telekom": ["telekom.de", "t-online.de"],
     "vodafone": ["vodafone.de", "vodafone.com"],
     "o2": ["o2online.de"],
-
     # --- German government / services ---
     "elster": ["elster.de"],
     "bundesagentur": ["arbeitsagentur.de"],
@@ -208,7 +197,10 @@ def check_brand_impersonation(
         logger.info(
             "Brand impersonation detected: display name '%s' matches brand '%s' "
             "but domain '%s' is not in legitimate domains %s",
-            from_name, keyword, actual_domain, legitimate_domains,
+            from_name,
+            keyword,
+            actual_domain,
+            legitimate_domains,
         )
         return BrandCheckResult(
             is_impersonation=True,
@@ -220,9 +212,7 @@ def check_brand_impersonation(
     # --- Check for fake domain in email local part ---
     # Pattern: "Brand-Something.tld@attacker-domain.org"
     # The local part mimics a domain to appear legitimate.
-    fake_domain_result = _check_fake_domain_in_local_part(
-        local_part, actual_domain, from_name
-    )
+    fake_domain_result = _check_fake_domain_in_local_part(local_part, actual_domain, from_name)
     if fake_domain_result:
         return fake_domain_result
 
@@ -264,9 +254,7 @@ def _check_fake_domain_in_local_part(
     but the actual sending domain is completely unrelated.
     """
     # Check if local part ends with what looks like a TLD (.com, .de, .fr, etc.)
-    tld_pattern = re.compile(
-        r".*\.(?:com|net|org|de|fr|uk|it|es|nl|be|ch|at|info|biz|io|co|eu)$"
-    )
+    tld_pattern = re.compile(r".*\.(?:com|net|org|de|fr|uk|it|es|nl|be|ch|at|info|biz|io|co|eu)$")
     if not tld_pattern.match(local_part):
         return None
 
@@ -281,9 +269,10 @@ def _check_fake_domain_in_local_part(
     for keyword, legitimate_domains in BRAND_DATABASE.items():
         if _keyword_matches(keyword, fake_domain_cleaned):
             logger.info(
-                "Fake domain in local part: '%s' mimics brand '%s', "
-                "actual domain is '%s'",
-                local_part, keyword, actual_domain,
+                "Fake domain in local part: '%s' mimics brand '%s', actual domain is '%s'",
+                local_part,
+                keyword,
+                actual_domain,
             )
             return BrandCheckResult(
                 is_impersonation=True,
@@ -295,9 +284,9 @@ def _check_fake_domain_in_local_part(
     # Even without a brand match, a fake domain in the local part is inherently
     # suspicious — flag it as impersonation with generic brand info
     logger.info(
-        "Fake domain pattern in local part: '%s@%s' — "
-        "local part mimics a domain name",
-        local_part, actual_domain,
+        "Fake domain pattern in local part: '%s@%s' — local part mimics a domain name",
+        local_part,
+        actual_domain,
     )
     return BrandCheckResult(
         is_impersonation=True,

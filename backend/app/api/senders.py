@@ -40,8 +40,7 @@ async def list_senders(
     if search:
         like = f"%{search}%"
         query = query.where(
-            (SenderProfile.email_address.ilike(like))
-            | (SenderProfile.display_name.ilike(like))
+            (SenderProfile.email_address.ilike(like)) | (SenderProfile.display_name.ilike(like))
         )
 
     count_query = select(func.count()).select_from(query.subquery())

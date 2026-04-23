@@ -35,6 +35,7 @@ class OllamaProvider(BaseLLMProvider):
         # Strip any residual <think>...</think> blocks some models add
         if "<think>" in content:
             import re
+
             content = re.sub(r"<think>.*?</think>\s*", "", content, flags=re.DOTALL)
 
         return content.strip()
@@ -62,8 +63,14 @@ class OllamaProvider(BaseLLMProvider):
             return [
                 {
                     "name": _get_model_name(m),
-                    "size": _format_size(getattr(m, "size", 0) if hasattr(m, "size") else m.get("size", 0)),
-                    "modified_at": str(getattr(m, "modified_at", "") if hasattr(m, "modified_at") else m.get("modified_at", "")),
+                    "size": _format_size(
+                        getattr(m, "size", 0) if hasattr(m, "size") else m.get("size", 0)
+                    ),
+                    "modified_at": str(
+                        getattr(m, "modified_at", "")
+                        if hasattr(m, "modified_at")
+                        else m.get("modified_at", "")
+                    ),
                 }
                 for m in models
             ]

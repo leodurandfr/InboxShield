@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Active pull tasks: pull_id -> {"task": asyncio.Task, "model": str, "status": str, "progress": float}
+# Active pull tasks: pull_id -> {"task", "model", "status", "progress"}
 _active_pulls: dict[str, dict] = {}
 
 # Curated list of recommended Ollama models
@@ -125,7 +125,9 @@ async def list_llm_models(
         from app.config import settings as app_settings
         from app.llm.ollama import OllamaProvider
 
-        ollama_url = settings.llm_base_url or app_settings.ollama_base_url or "http://localhost:11434"
+        ollama_url = (
+            settings.llm_base_url or app_settings.ollama_base_url or "http://localhost:11434"
+        )
         provider = OllamaProvider(
             base_url=ollama_url,
             model=settings.llm_model,
@@ -171,9 +173,11 @@ async def list_llm_models(
             # Fall back to static list
             if provider_name == "openai":
                 from app.llm.openai import OPENAI_MODELS
+
                 static = OPENAI_MODELS
             else:
                 from app.llm.mistral import MISTRAL_MODELS
+
                 static = MISTRAL_MODELS
             return LLMModelsResponse(
                 provider=provider_name,
@@ -320,7 +324,7 @@ async def test_llm(db: AsyncSession = Depends(get_db)):
 
         # Quick test: generate a simple response
         start = time.monotonic()
-        response = await llm.generate(
+        await llm.generate(
             "Tu es un assistant de test.",
             "Réponds uniquement 'OK' si tu fonctionnes correctement.",
         )

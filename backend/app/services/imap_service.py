@@ -28,24 +28,91 @@ PROVIDER_MAP: dict[str, dict] = {
     "gmx.de": {"host": "imap.gmx.net", "port": 993, "smtp_host": "mail.gmx.net", "smtp_port": 587},
     "gmx.net": {"host": "imap.gmx.net", "port": 993, "smtp_host": "mail.gmx.net", "smtp_port": 587},
     # Gmail
-    "gmail.com": {"host": "imap.gmail.com", "port": 993, "smtp_host": "smtp.gmail.com", "smtp_port": 587},
-    "googlemail.com": {"host": "imap.gmail.com", "port": 993, "smtp_host": "smtp.gmail.com", "smtp_port": 587},
+    "gmail.com": {
+        "host": "imap.gmail.com",
+        "port": 993,
+        "smtp_host": "smtp.gmail.com",
+        "smtp_port": 587,
+    },
+    "googlemail.com": {
+        "host": "imap.gmail.com",
+        "port": 993,
+        "smtp_host": "smtp.gmail.com",
+        "smtp_port": 587,
+    },
     # Outlook / Microsoft
-    "outlook.com": {"host": "outlook.office365.com", "port": 993, "smtp_host": "smtp.office365.com", "smtp_port": 587},
-    "hotmail.com": {"host": "outlook.office365.com", "port": 993, "smtp_host": "smtp.office365.com", "smtp_port": 587},
-    "live.com": {"host": "outlook.office365.com", "port": 993, "smtp_host": "smtp.office365.com", "smtp_port": 587},
-    "msn.com": {"host": "outlook.office365.com", "port": 993, "smtp_host": "smtp.office365.com", "smtp_port": 587},
+    "outlook.com": {
+        "host": "outlook.office365.com",
+        "port": 993,
+        "smtp_host": "smtp.office365.com",
+        "smtp_port": 587,
+    },
+    "hotmail.com": {
+        "host": "outlook.office365.com",
+        "port": 993,
+        "smtp_host": "smtp.office365.com",
+        "smtp_port": 587,
+    },
+    "live.com": {
+        "host": "outlook.office365.com",
+        "port": 993,
+        "smtp_host": "smtp.office365.com",
+        "smtp_port": 587,
+    },
+    "msn.com": {
+        "host": "outlook.office365.com",
+        "port": 993,
+        "smtp_host": "smtp.office365.com",
+        "smtp_port": 587,
+    },
     # Yahoo
-    "yahoo.com": {"host": "imap.mail.yahoo.com", "port": 993, "smtp_host": "smtp.mail.yahoo.com", "smtp_port": 587},
-    "yahoo.fr": {"host": "imap.mail.yahoo.com", "port": 993, "smtp_host": "smtp.mail.yahoo.com", "smtp_port": 587},
+    "yahoo.com": {
+        "host": "imap.mail.yahoo.com",
+        "port": 993,
+        "smtp_host": "smtp.mail.yahoo.com",
+        "smtp_port": 587,
+    },
+    "yahoo.fr": {
+        "host": "imap.mail.yahoo.com",
+        "port": 993,
+        "smtp_host": "smtp.mail.yahoo.com",
+        "smtp_port": 587,
+    },
     # Fastmail
-    "fastmail.com": {"host": "imap.fastmail.com", "port": 993, "smtp_host": "smtp.fastmail.com", "smtp_port": 587},
+    "fastmail.com": {
+        "host": "imap.fastmail.com",
+        "port": 993,
+        "smtp_host": "smtp.fastmail.com",
+        "smtp_port": 587,
+    },
     # ProtonMail (via Bridge)
-    "protonmail.com": {"host": "127.0.0.1", "port": 1143, "smtp_host": "127.0.0.1", "smtp_port": 1025, "note": "ProtonMail Bridge required"},
-    "proton.me": {"host": "127.0.0.1", "port": 1143, "smtp_host": "127.0.0.1", "smtp_port": 1025, "note": "ProtonMail Bridge required"},
+    "protonmail.com": {
+        "host": "127.0.0.1",
+        "port": 1143,
+        "smtp_host": "127.0.0.1",
+        "smtp_port": 1025,
+        "note": "ProtonMail Bridge required",
+    },
+    "proton.me": {
+        "host": "127.0.0.1",
+        "port": 1143,
+        "smtp_host": "127.0.0.1",
+        "smtp_port": 1025,
+        "note": "ProtonMail Bridge required",
+    },
     # iCloud
-    "icloud.com": {"host": "imap.mail.me.com", "port": 993, "smtp_host": "smtp.mail.me.com", "smtp_port": 587},
-    "me.com": {"host": "imap.mail.me.com", "port": 993, "smtp_host": "smtp.mail.me.com", "smtp_port": 587},
+    "icloud.com": {
+        "host": "imap.mail.me.com",
+        "port": 993,
+        "smtp_host": "smtp.mail.me.com",
+        "smtp_port": 587,
+    },
+    "me.com": {
+        "host": "imap.mail.me.com",
+        "port": 993,
+        "smtp_host": "smtp.mail.me.com",
+        "smtp_port": 587,
+    },
 }
 
 # Known folder names by role for common providers
@@ -82,6 +149,7 @@ class FolderMapping:
 @dataclass
 class FetchedEmail:
     """Raw email data extracted from IMAP, ready to be saved to DB."""
+
     uid: int
     message_id: str | None
     in_reply_to: str | None
@@ -298,7 +366,9 @@ def fetch_new_emails(
     emails: list[FetchedEmail] = []
 
     try:
-        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(username, password, initial_folder=folder) as mailbox:
+        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(
+            username, password, initial_folder=folder
+        ) as mailbox:
             # Fetch by UID range: since_uid+1 to *
             uid_criteria = f"{since_uid + 1}:*" if since_uid > 0 else "1:*"
             messages = mailbox.fetch(
@@ -340,7 +410,9 @@ def fetch_recent_emails(
     emails: list[FetchedEmail] = []
 
     try:
-        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(username, password, initial_folder=folder) as mailbox:
+        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(
+            username, password, initial_folder=folder
+        ) as mailbox:
             messages = mailbox.fetch(
                 AND(all=True),
                 mark_seen=False,
@@ -388,7 +460,9 @@ def fetch_emails_since(
     emails: list[FetchedEmail] = []
 
     try:
-        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(username, password, initial_folder=folder) as mailbox:
+        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(
+            username, password, initial_folder=folder
+        ) as mailbox:
             messages = mailbox.fetch(
                 AND(date_gte=since),
                 mark_seen=False,
@@ -397,12 +471,14 @@ def fetch_emails_since(
 
             for msg in messages:
                 try:
-                    emails.append(_extract_email(msg, folder, max_body))
+                    emails.append(_extract_email(msg, folder, config))
                 except Exception:
                     logger.exception("Failed to parse email UID %s in %s", msg.uid, folder)
 
     except Exception:
-        logger.exception("IMAP fetch_since error for %s@%s folder=%s since=%s", username, host, folder, since)
+        logger.exception(
+            "IMAP fetch_since error for %s@%s folder=%s since=%s", username, host, folder, since
+        )
         raise
 
     logger.info("Fetched %d emails from %s since %s", len(emails), folder, since)
@@ -415,12 +491,19 @@ def fetch_emails_since(
 
 
 def move_email(
-    host: str, port: int, username: str, password: str,
-    uid: int, from_folder: str, to_folder: str,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    uid: int,
+    from_folder: str,
+    to_folder: str,
 ) -> bool:
     """Move an email to another IMAP folder."""
     try:
-        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(username, password, initial_folder=from_folder) as mailbox:
+        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(
+            username, password, initial_folder=from_folder
+        ) as mailbox:
             mailbox.move(str(uid), to_folder)
             return True
     except Exception:
@@ -429,8 +512,14 @@ def move_email(
 
 
 def set_flag(
-    host: str, port: int, username: str, password: str,
-    uid: int, folder: str, flag: str, value: bool = True,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    uid: int,
+    folder: str,
+    flag: str,
+    value: bool = True,
 ) -> bool:
     """Set or unset an IMAP flag on an email."""
     flag_map = {
@@ -445,7 +534,9 @@ def set_flag(
         raise ValueError(f"Unknown flag: {flag}. Supported: {list(flag_map.keys())}")
 
     try:
-        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(username, password, initial_folder=folder) as mailbox:
+        with MailBox(host, port, timeout=IMAP_TIMEOUT).login(
+            username, password, initial_folder=folder
+        ) as mailbox:
             mailbox.flag(str(uid), {imap_flag}, value)
             return True
     except Exception:
@@ -454,7 +545,10 @@ def set_flag(
 
 
 def create_folder(
-    host: str, port: int, username: str, password: str,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
     folder_name: str,
 ) -> bool:
     """Create an IMAP folder (e.g., InboxShield/Quarantine)."""

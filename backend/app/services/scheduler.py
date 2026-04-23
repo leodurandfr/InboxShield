@@ -8,15 +8,14 @@ Jobs:
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from sqlalchemy import delete, select, func, update
+from sqlalchemy import delete, func, select, update
 
 from app.db.database import async_session
 from app.models.account import Account
 from app.models.activity_log import ActivityLog
-from app.models.classification import Classification
 from app.models.email import Email, EmailThread
 from app.models.settings import Settings
 from app.services import activity_service, imap_service
@@ -119,11 +118,13 @@ def get_scheduler_info() -> dict:
     jobs = []
     if scheduler.running:
         for job in scheduler.get_jobs():
-            jobs.append({
-                "id": job.id,
-                "name": job.name,
-                "next_run": str(job.next_run_time) if job.next_run_time else None,
-            })
+            jobs.append(
+                {
+                    "id": job.id,
+                    "name": job.name,
+                    "next_run": str(job.next_run_time) if job.next_run_time else None,
+                }
+            )
 
     return {
         "running": scheduler.running,
@@ -158,14 +159,18 @@ async def poll_all_accounts() -> None:
 
                 # Phase 1b: pick up stale pending/failed/classifying emails
                 # "pending"/"failed" stuck > 5 min, "classifying" stuck > 10 min
-                stale_cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
-                classifying_cutoff = datetime.now(timezone.utc) - timedelta(minutes=10)
+                stale_cutoff = datetime.now(UTC) - timedelta(minutes=5)
+                classifying_cutoff = datetime.now(UTC) - timedelta(minutes=10)
                 stale_result = await db.execute(
                     select(Email.id).where(
                         Email.account_id == account.id,
                         (
-                            (Email.processing_status.in_(["pending", "failed"]) & (Email.created_at < stale_cutoff))
-                            | (Email.processing_status == "classifying") & (Email.created_at < classifying_cutoff)
+                            (
+                                Email.processing_status.in_(["pending", "failed"])
+                                & (Email.created_at < stale_cutoff)
+                            )
+                            | (Email.processing_status == "classifying")
+                            & (Email.created_at < classifying_cutoff)
                         ),
                         Email.id.notin_(email_ids) if email_ids else True,
                     )
@@ -174,7 +179,8 @@ async def poll_all_accounts() -> None:
                 if stale_ids:
                     logger.info(
                         "Account %s: retrying %d stale pending/failed emails",
-                        account.email, len(stale_ids),
+                        account.email,
+                        len(stale_ids),
                     )
                     email_ids = email_ids + stale_ids
 
@@ -183,8 +189,11 @@ async def poll_all_accounts() -> None:
                     stats = await _classify_email_ids(db, email_ids, account.id)
                     logger.info(
                         "Account %s: %d classified, %d skipped, %d failed, %d review",
-                        account.email, stats["classified"], stats["skipped"],
-                        stats["failed"], stats["review"],
+                        account.email,
+                        stats["classified"],
+                        stats["skipped"],
+                        stats["failed"],
+                        stats["review"],
                     )
             except Exception as e:
                 await db.rollback()
@@ -192,9 +201,7 @@ async def poll_all_accounts() -> None:
                 # Log the error in a new transaction
                 try:
                     async with async_session() as error_db:
-                        await activity_service.log_poll_error(
-                            error_db, account.id, str(e)
-                        )
+                        await activity_service.log_poll_error(error_db, account.id, str(e))
                         account_stmt = select(Account).where(Account.id == account.id)
                         acct = (await error_db.execute(account_stmt)).scalar_one()
                         acct.last_poll_error = str(e)[:500]
@@ -236,7 +243,7 @@ async def _save_fetched_to_db(
     Returns list of new email IDs.
     """
     if not fetched:
-        account.last_poll_at = datetime.now(timezone.utc)
+        account.last_poll_at = datetime.now(UTC)
         account.last_poll_error = None
         await db.commit()
         return []
@@ -320,7 +327,7 @@ async def _save_fetched_to_db(
 
     # Update account polling state
     account.last_uid = max_uid
-    account.last_poll_at = datetime.now(timezone.utc)
+    account.last_poll_at = datetime.now(UTC)
     account.last_poll_error = None
 
     # Commit immediately so emails are visible in the UI
@@ -357,7 +364,9 @@ async def _fetch_and_save_emails(db, account: Account) -> list:
         since_date = app_settings.initial_fetch_since if app_settings else None
         logger.info(
             "Initial poll for %s — fetching all emails since %s from %s",
-            account.email, since_date or "1st of month (default)", folders,
+            account.email,
+            since_date or "1st of month (default)",
+            folders,
         )
         for folder in folders:
             try:
@@ -420,7 +429,9 @@ async def _fetch_and_save_emails_full(db, account: Account) -> list:
 
     logger.info(
         "Manual full scan for %s — fetching all emails since %s from %s",
-        account.email, since_date or "1st of month (default)", folders,
+        account.email,
+        since_date or "1st of month (default)",
+        folders,
     )
 
     fetched: list = []
@@ -441,26 +452,31 @@ async def _fetch_and_save_emails_full(db, account: Account) -> list:
             logger.exception("Failed to fetch from folder %s for %s", folder, account.email)
 
     new_email_ids = await _save_fetched_to_db(
-        db, account, fetched, log_label=" (full scan)",
+        db,
+        account,
+        fetched,
+        log_label=" (full scan)",
     )
 
     # Broadcast real-time event
     from app.services.ws_manager import ws_manager
+
     if new_email_ids:
-        await ws_manager.broadcast("poll_complete", {
-            "account_id": str(account.id),
-            "account_email": account.email,
-            "new_emails": len(new_email_ids),
-        })
+        await ws_manager.broadcast(
+            "poll_complete",
+            {
+                "account_id": str(account.id),
+                "account_email": account.email,
+                "new_emails": len(new_email_ids),
+            },
+        )
 
     return new_email_ids
 
 
 async def _classify_email_ids(db, email_ids: list, account_id) -> dict:
     """Classify a list of emails by their IDs. Returns stats dict."""
-    email_result = await db.execute(
-        select(Email).where(Email.id.in_(email_ids))
-    )
+    email_result = await db.execute(select(Email).where(Email.id.in_(email_ids)))
     emails_to_classify = list(email_result.scalars().all())
 
     acct_result = await db.execute(select(Account).where(Account.id == account_id))
@@ -484,22 +500,25 @@ async def _classify_emails_background(email_ids: list, account_id) -> None:
     between batches for cooperative cancellation.
     """
     global _cancel_requested
-    BATCH_SIZE = 10
+    batch_size = 10
     total_stats = {"total": len(email_ids), "classified": 0, "skipped": 0, "failed": 0, "review": 0}
     from app.services.ws_manager import ws_manager
 
     try:
-        for i in range(0, len(email_ids), BATCH_SIZE):
+        for i in range(0, len(email_ids), batch_size):
             # --- cooperative cancellation check ---
             if _cancel_requested:
                 remaining = len(email_ids) - i
                 logger.info(
                     "Classification cancelled for account %s (%d/%d processed, %d remaining)",
-                    account_id, i, len(email_ids), remaining,
+                    account_id,
+                    i,
+                    len(email_ids),
+                    remaining,
                 )
                 return
 
-            batch_ids = email_ids[i:i + BATCH_SIZE]
+            batch_ids = email_ids[i : i + batch_size]
             try:
                 async with async_session() as db:
                     stats = await _classify_email_ids(db, batch_ids, account_id)
@@ -507,29 +526,42 @@ async def _classify_emails_background(email_ids: list, account_id) -> None:
                         total_stats[key] += stats[key]
                     logger.info(
                         "Classified batch %d-%d/%d for account %s",
-                        i + 1, min(i + BATCH_SIZE, len(email_ids)), len(email_ids), account_id,
+                        i + 1,
+                        min(i + batch_size, len(email_ids)),
+                        len(email_ids),
+                        account_id,
                     )
                     # Broadcast progress
-                    await ws_manager.broadcast("classification_progress", {
-                        "account_id": str(account_id),
-                        "processed": min(i + BATCH_SIZE, len(email_ids)),
-                        "total": len(email_ids),
-                        "batch_stats": stats,
-                    })
+                    await ws_manager.broadcast(
+                        "classification_progress",
+                        {
+                            "account_id": str(account_id),
+                            "processed": min(i + batch_size, len(email_ids)),
+                            "total": len(email_ids),
+                            "batch_stats": stats,
+                        },
+                    )
             except Exception:
                 total_stats["failed"] += len(batch_ids)
-                logger.exception("Batch %d-%d classification failed", i + 1, i + BATCH_SIZE)
+                logger.exception("Batch %d-%d classification failed", i + 1, i + batch_size)
 
         logger.info(
-            "Background classification complete for account %s: %d classified, %d skipped, %d failed, %d review",
-            account_id, total_stats["classified"], total_stats["skipped"],
-            total_stats["failed"], total_stats["review"],
+            "Background classification complete for account %s: "
+            "%d classified, %d skipped, %d failed, %d review",
+            account_id,
+            total_stats["classified"],
+            total_stats["skipped"],
+            total_stats["failed"],
+            total_stats["review"],
         )
         # Broadcast completion
-        await ws_manager.broadcast("classification_complete", {
-            "account_id": str(account_id),
-            "stats": total_stats,
-        })
+        await ws_manager.broadcast(
+            "classification_complete",
+            {
+                "account_id": str(account_id),
+                "stats": total_stats,
+            },
+        )
     except Exception:
         logger.exception("Background classification failed for account %s", account_id)
 
@@ -569,23 +601,29 @@ async def poll_all_accounts_manual() -> dict:
 
                 all_ids_to_classify = email_ids + pending_ids
                 if all_ids_to_classify:
-                    task = asyncio.create_task(_classify_emails_background(all_ids_to_classify, account.id))
+                    task = asyncio.create_task(
+                        _classify_emails_background(all_ids_to_classify, account.id)
+                    )
                     _background_tasks.add(task)
                     task.add_done_callback(_background_tasks.discard)
 
-                results.append({
-                    "account": account.email,
-                    "new_emails": len(email_ids),
-                    "pending_reclassified": len(pending_ids),
-                })
+                results.append(
+                    {
+                        "account": account.email,
+                        "new_emails": len(email_ids),
+                        "pending_reclassified": len(pending_ids),
+                    }
+                )
                 total_new += len(email_ids)
             except Exception as e:
                 await db.rollback()
                 logger.exception("Manual poll failed for account %s", account.email)
-                results.append({
-                    "account": account.email,
-                    "error": str(e),
-                })
+                results.append(
+                    {
+                        "account": account.email,
+                        "error": str(e),
+                    }
+                )
 
         return {"status": "ok", "accounts": results, "total_new_emails": total_new}
 
@@ -648,6 +686,7 @@ async def reanalyze_all_emails() -> dict:
     # Broadcast classification_started so frontend knows immediately
     if total_fetched > 0:
         from app.services.ws_manager import ws_manager
+
         await ws_manager.broadcast("classification_started", {"total": total_fetched})
 
     return {"status": "ok", "total_fetched": total_fetched}
@@ -683,9 +722,9 @@ async def cancel_all_analysis() -> dict:
     try:
         async with async_session() as db:
             result = await db.execute(
-                select(func.count()).select_from(Email).where(
-                    Email.processing_status.in_(["pending", "classifying"])
-                )
+                select(func.count())
+                .select_from(Email)
+                .where(Email.processing_status.in_(["pending", "classifying"]))
             )
             remaining = result.scalar() or 0
     except Exception:
@@ -693,12 +732,18 @@ async def cancel_all_analysis() -> dict:
 
     # Broadcast cancellation event
     from app.services.ws_manager import ws_manager
-    await ws_manager.broadcast("classification_cancelled", {
-        "cancelled": cancelled,
-        "remaining": remaining,
-    })
 
-    logger.info("Cancelled %d background classification tasks, %d emails remaining", cancelled, remaining)
+    await ws_manager.broadcast(
+        "classification_cancelled",
+        {
+            "cancelled": cancelled,
+            "remaining": remaining,
+        },
+    )
+
+    logger.info(
+        "Cancelled %d background classification tasks, %d emails remaining", cancelled, remaining
+    )
     return {"status": "ok", "cancelled": cancelled, "remaining": remaining}
 
 
@@ -721,9 +766,9 @@ async def resume_classification() -> dict:
 
         # Get pending emails grouped by account
         result = await db.execute(
-            select(Email.account_id, func.array_agg(Email.id)).where(
-                Email.processing_status == "pending"
-            ).group_by(Email.account_id)
+            select(Email.account_id, func.array_agg(Email.id))
+            .where(Email.processing_status == "pending")
+            .group_by(Email.account_id)
         )
         rows = result.all()
 
@@ -745,9 +790,9 @@ async def get_classification_status() -> dict:
     try:
         async with async_session() as db:
             result = await db.execute(
-                select(func.count()).select_from(Email).where(
-                    Email.processing_status.in_(["pending", "classifying"])
-                )
+                select(func.count())
+                .select_from(Email)
+                .where(Email.processing_status.in_(["pending", "classifying"]))
             )
             pending_count = result.scalar() or 0
     except Exception:
@@ -819,12 +864,15 @@ async def check_imap_health() -> None:
                 if not test_result.success:
                     logger.warning(
                         "IMAP health check failed for %s: %s",
-                        account.email, test_result.error,
+                        account.email,
+                        test_result.error,
                     )
                     account.last_poll_error = f"Health check: {test_result.error}"
                 else:
                     # Clear error if previously set from health check
-                    if account.last_poll_error and account.last_poll_error.startswith("Health check:"):
+                    if account.last_poll_error and account.last_poll_error.startswith(
+                        "Health check:"
+                    ):
                         account.last_poll_error = None
 
             except Exception as e:
@@ -844,7 +892,7 @@ async def cleanup_old_data() -> None:
     async with async_session() as db:
         settings = await get_settings(db)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 1. Delete old activity logs (retention_days, default 90)
         log_cutoff = now - timedelta(days=settings.retention_days)
@@ -856,7 +904,9 @@ async def cleanup_old_data() -> None:
         # 2. Archive (soft-delete) old processed emails (email_retention_days, default 365)
         email_cutoff = now - timedelta(days=settings.email_retention_days)
         email_result = await db.execute(
-            select(func.count()).select_from(Email).where(
+            select(func.count())
+            .select_from(Email)
+            .where(
                 Email.date < email_cutoff,
                 Email.is_archived == False,  # noqa: E712
             )
@@ -865,6 +915,7 @@ async def cleanup_old_data() -> None:
 
         if archivable_count > 0:
             from sqlalchemy import update
+
             await db.execute(
                 update(Email)
                 .where(Email.date < email_cutoff, Email.is_archived == False)  # noqa: E712
@@ -875,7 +926,8 @@ async def cleanup_old_data() -> None:
 
         logger.info(
             "Cleanup complete: %d activity logs deleted, %d emails archived",
-            deleted_logs, archivable_count,
+            deleted_logs,
+            archivable_count,
         )
 
 

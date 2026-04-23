@@ -35,13 +35,13 @@ def _get_h2t() -> html2text.HTML2Text:
     """Return a thread-local HTML2Text converter (created once per thread)."""
     if not hasattr(_thread_local, "h2t"):
         h = html2text.HTML2Text()
-        h.ignore_links = False       # Preserve [text](url) inline links
-        h.ignore_images = True       # Drop <img> tags (noise for LLM)
-        h.ignore_tables = False      # Keep table content
-        h.body_width = 0             # No line wrapping (cleaner for LLM)
-        h.unicode_snob = True        # Use Unicode instead of ASCII equivalents
+        h.ignore_links = False  # Preserve [text](url) inline links
+        h.ignore_images = True  # Drop <img> tags (noise for LLM)
+        h.ignore_tables = False  # Keep table content
+        h.body_width = 0  # No line wrapping (cleaner for LLM)
+        h.unicode_snob = True  # Use Unicode instead of ASCII equivalents
         h.skip_internal_links = True  # Skip anchor-only links (#section)
-        h.protect_links = False      # Don't add extra markup around links
+        h.protect_links = False  # Don't add extra markup around links
         h.ignore_mailto_links = True  # Skip mailto: links (noise)
         _thread_local.h2t = h
     return _thread_local.h2t
@@ -61,15 +61,13 @@ _reply_parser = EmailReplyParser(languages=["en", "fr"])
 # ---------------------------------------------------------------------------
 
 _SIGNATURE_PATTERNS = [
-    r"^--\s*$",            # Standard -- separator
-    r"^_{3,}",             # ___ underscores
-    r"^Envoyé depuis",     # French mobile signature
-    r"^Sent from",         # English mobile signature
-    r"^Get Outlook for",   # Outlook mobile
+    r"^--\s*$",  # Standard -- separator
+    r"^_{3,}",  # ___ underscores
+    r"^Envoyé depuis",  # French mobile signature
+    r"^Sent from",  # English mobile signature
+    r"^Get Outlook for",  # Outlook mobile
 ]
-_SIGNATURE_RE = re.compile(
-    "|".join(_SIGNATURE_PATTERNS), re.MULTILINE | re.IGNORECASE
-)
+_SIGNATURE_RE = re.compile("|".join(_SIGNATURE_PATTERNS), re.MULTILINE | re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------
@@ -91,8 +89,8 @@ class ExtractionConfig:
 class ExtractionResult:
     """Output of extract_email_content()."""
 
-    body_excerpt: str        # Clean Markdown text, truncated
-    body_html_excerpt: str   # Raw HTML, truncated (for URL extraction)
+    body_excerpt: str  # Clean Markdown text, truncated
+    body_html_excerpt: str  # Raw HTML, truncated (for URL extraction)
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +150,7 @@ def _extract_body(
     # Step 1: Convert HTML -> Markdown, or use plain text directly
     if html:
         try:
-            content = _h2t.handle(html)
+            content = _get_h2t().handle(html)
         except Exception:
             logger.warning("html2text failed, falling back to plain text")
             content = text or ""

@@ -13,8 +13,15 @@ logger = logging.getLogger(__name__)
 
 # Valid categories for validation
 VALID_CATEGORIES = {
-    "important", "work", "personal", "newsletter", "promotion",
-    "notification", "spam", "phishing", "transactional",
+    "important",
+    "work",
+    "personal",
+    "newsletter",
+    "promotion",
+    "notification",
+    "spam",
+    "phishing",
+    "transactional",
 }
 
 # JSON schemas for structured outputs (Ollama format parameter)
@@ -34,7 +41,14 @@ CLASSIFICATION_JSON_SCHEMA = {
             "items": {"type": "string"},
         },
     },
-    "required": ["category", "confidence", "explanation", "is_spam", "is_phishing", "phishing_reasons"],
+    "required": [
+        "category",
+        "confidence",
+        "explanation",
+        "is_spam",
+        "is_phishing",
+        "phishing_reasons",
+    ],
 }
 
 RULE_INTERPRETATION_JSON_SCHEMA = {
@@ -99,7 +113,8 @@ def parse_classification_json(raw: str) -> dict | None:
             "confidence": float(confidence_match.group(1)) if confidence_match else 0.5,
             "explanation": explanation_match.group(1) if explanation_match else "",
             "is_spam": '"is_spam": true' in raw.lower() or '"is_spam":true' in raw.lower(),
-            "is_phishing": '"is_phishing": true' in raw.lower() or '"is_phishing":true' in raw.lower(),
+            "is_phishing": '"is_phishing": true' in raw.lower()
+            or '"is_phishing":true' in raw.lower(),
             "phishing_reasons": [],
         }
 
@@ -253,7 +268,9 @@ async def classify_email(
 
     # Attempt 1
     try:
-        raw_response = await llm.generate(system_prompt, user_prompt, response_format=response_format)
+        raw_response = await llm.generate(
+            system_prompt, user_prompt, response_format=response_format
+        )
         parsed = parse_classification_json(raw_response)
     except Exception:
         logger.exception("LLM classify attempt 1 failed")
@@ -261,9 +278,13 @@ async def classify_email(
     # Attempt 2: retry with reinforced prompt (only needed for non-structured providers)
     if parsed is None:
         logger.warning("Classification parse failed, retrying with reinforced prompt")
-        reinforced_system = system_prompt + "\n\nIMPORTANT: Réponds UNIQUEMENT en JSON valide. Pas de texte autour."
+        reinforced_system = (
+            system_prompt + "\n\nIMPORTANT: Réponds UNIQUEMENT en JSON valide. Pas de texte autour."
+        )
         try:
-            raw_response = await llm.generate(reinforced_system, user_prompt, response_format=response_format)
+            raw_response = await llm.generate(
+                reinforced_system, user_prompt, response_format=response_format
+            )
             parsed = parse_classification_json(raw_response)
         except Exception:
             logger.exception("LLM classify attempt 2 failed")
@@ -322,7 +343,9 @@ async def interpret_rule(
     response_format = RULE_INTERPRETATION_JSON_SCHEMA if llm.provider_name == "ollama" else None
 
     try:
-        raw_response = await llm.generate(system_prompt, user_prompt, response_format=response_format)
+        raw_response = await llm.generate(
+            system_prompt, user_prompt, response_format=response_format
+        )
         parsed = parse_rule_json(raw_response)
 
         if parsed:

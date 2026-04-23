@@ -2,8 +2,6 @@
 
 import base64
 
-import pytest
-
 from app.services.url_analysis import (
     ExtractedUrl,
     _are_related_domains,
@@ -23,7 +21,6 @@ from app.services.url_analysis import (
     analyze_urls,
     extract_urls_from_html,
 )
-
 
 # ---------------------------------------------------------------------------
 # extract_urls_from_html
@@ -267,7 +264,9 @@ class TestCheckAffiliateParams:
 
 class TestAnalyzeUrls:
     def test_clean_urls(self):
-        urls = [ExtractedUrl(href="https://example.com", display_text="Example", domain="example.com")]
+        urls = [
+            ExtractedUrl(href="https://example.com", display_text="Example", domain="example.com")
+        ]
         result = analyze_urls(urls)
         assert not result.has_suspicious
         assert result.total_urls == 1
@@ -276,36 +275,45 @@ class TestAnalyzeUrls:
         urls = [ExtractedUrl(href="https://bit.ly/abc123", display_text="Click", domain="bit.ly")]
         result = analyze_urls(urls)
         assert result.has_suspicious
-        assert any("raccourcisseur" in r.lower() for s in result.suspicious_urls for r in s["reasons"])
+        assert any(
+            "raccourcisseur" in r.lower() for s in result.suspicious_urls for r in s["reasons"]
+        )
 
     def test_ip_address_detected(self):
         """Public IP addresses should be flagged as suspicious."""
-        urls = [ExtractedUrl(href="http://185.23.45.67/login", display_text="Login", domain="185.23.45.67")]
+        urls = [
+            ExtractedUrl(
+                href="http://185.23.45.67/login", display_text="Login", domain="185.23.45.67"
+            )
+        ]
         result = analyze_urls(urls)
         assert result.has_suspicious
         assert any("IP" in r for s in result.suspicious_urls for r in s["reasons"])
 
     def test_display_mismatch_detected(self):
-        urls = [ExtractedUrl(
-            href="https://evil.com/login",
-            display_text="paypal.com",
-            domain="evil.com",
-        )]
+        urls = [
+            ExtractedUrl(
+                href="https://evil.com/login",
+                display_text="paypal.com",
+                domain="evil.com",
+            )
+        ]
         result = analyze_urls(urls)
         assert result.has_suspicious
         assert any("trompeur" in r.lower() for s in result.suspicious_urls for r in s["reasons"])
 
     def test_display_mismatch_tracking_not_flagged(self):
-        urls = [ExtractedUrl(
-            href="https://click.sendgrid.net/redirect?url=...",
-            display_text="mysite.com",
-            domain="click.sendgrid.net",
-        )]
+        urls = [
+            ExtractedUrl(
+                href="https://click.sendgrid.net/redirect?url=...",
+                display_text="mysite.com",
+                domain="click.sendgrid.net",
+            )
+        ]
         result = analyze_urls(urls)
         # Tracking redirects should NOT be flagged for display mismatch
         mismatches = [
-            r for s in result.suspicious_urls for r in s["reasons"]
-            if "trompeur" in r.lower()
+            r for s in result.suspicious_urls for r in s["reasons"] if "trompeur" in r.lower()
         ]
         assert len(mismatches) == 0
 
@@ -435,23 +443,17 @@ class TestCheckSenderDomainMismatch:
 class TestRedirectScriptRdPath:
     def test_rd_path_detected(self):
         """Short /rd/ redirect path should be flagged."""
-        assert _is_redirect_script(
-            "http://serviice.casacam.net/rd/4lBwjm6146jMFT1083"
-        )
+        assert _is_redirect_script("http://serviice.casacam.net/rd/4lBwjm6146jMFT1083")
 
     def test_rd_path_with_long_token(self):
-        assert _is_redirect_script(
-            "http://evil.com/rd/aB3xK9mW2pQ7nL4yH8vJ6tR1"
-        )
+        assert _is_redirect_script("http://evil.com/rd/aB3xK9mW2pQ7nL4yH8vJ6tR1")
 
     def test_normal_path_not_flagged(self):
         assert not _is_redirect_script("https://example.com/about")
 
     def test_tracking_rd_not_flagged(self):
         """Known tracking services with /rd/ should not be flagged."""
-        assert not _is_redirect_script(
-            "https://click.sendgrid.net/rd/something"
-        )
+        assert not _is_redirect_script("https://click.sendgrid.net/rd/something")
 
     def test_sender_own_subdomain_not_flagged(self):
         """Sender's own tracking subdomain should not be flagged."""
@@ -492,22 +494,27 @@ class TestCheckGibberishPath:
 
     def test_uuid_path_not_flagged(self):
         """UUID-like paths (with dashes) should not be flagged."""
-        assert _check_gibberish_path(
-            "https://example.com/item/f07edfbf-2420-41a4-97c7-4690ac553f4f"
-        ) is None
+        assert (
+            _check_gibberish_path("https://example.com/item/f07edfbf-2420-41a4-97c7-4690ac553f4f")
+            is None
+        )
 
     def test_base64_path_not_flagged(self):
         """Base64-like paths (with =) should not be flagged."""
-        assert _check_gibberish_path(
-            "https://example.com/data/dGhpcyBpcyBhIGJhc2U2NCBzdHJpbmc="
-        ) is None
+        assert (
+            _check_gibberish_path("https://example.com/data/dGhpcyBpcyBhIGJhc2U2NCBzdHJpbmc=")
+            is None
+        )
 
     def test_sender_own_tracking_not_flagged(self):
         """Sender's own tracking subdomain tokens should not be flagged."""
-        assert _check_gibberish_path(
-            "https://links.homeexchange.com/s/c/rkjf60EkXWRJfbdRQyWl4djqt1og5VWH",
-            sender_domain="info.homeexchange.com",
-        ) is None
+        assert (
+            _check_gibberish_path(
+                "https://links.homeexchange.com/s/c/rkjf60EkXWRJfbdRQyWl4djqt1og5VWH",
+                sender_domain="info.homeexchange.com",
+            )
+            is None
+        )
 
     def test_unrelated_domain_still_flagged(self):
         """Unrelated domains with gibberish paths should still be flagged."""

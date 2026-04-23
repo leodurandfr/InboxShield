@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 @dataclass
 class ClassificationResult:
     """Result of an email classification by the LLM."""
+
     category: str
     confidence: float
     explanation: str = ""
@@ -23,6 +24,7 @@ class ClassificationResult:
 @dataclass
 class RuleInterpretation:
     """Result of a natural language rule interpretation."""
+
     matches: bool
     reason: str = ""
 

@@ -72,9 +72,7 @@ async def bulk_unsubscribe(data: UnsubscribeRequest, db: AsyncSession = Depends(
         result = await db.execute(select(Newsletter).where(Newsletter.id == nl_id))
         newsletter = result.scalar_one_or_none()
         if not newsletter:
-            results.append(
-                UnsubscribeResult(newsletter_id=nl_id, status="not_found")
-            )
+            results.append(UnsubscribeResult(newsletter_id=nl_id, status="not_found"))
             failed += 1
             continue
 

@@ -100,9 +100,7 @@ async def review_stats(
     if account_id:
         base = base.where(Email.account_id == account_id)
 
-    total = (
-        await db.execute(select(func.count()).select_from(base.subquery()))
-    ).scalar() or 0
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar() or 0
 
     by_cat_query = (
         select(Classification.category, func.count())

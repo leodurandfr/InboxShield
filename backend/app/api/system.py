@@ -2,7 +2,7 @@
 
 import random
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -24,7 +24,14 @@ from app.schemas.system import (
 )
 from app.services.classifier import classify_single_email, get_llm_provider, get_settings
 from app.services.ollama_manager import ollama_manager
-from app.services.scheduler import adjust_confidence_threshold, cancel_all_analysis, cleanup_old_data, get_classification_status, get_scheduler_info, poll_all_accounts_manual, reanalyze_all_emails, resume_classification
+from app.services.scheduler import (
+    adjust_confidence_threshold,
+    cancel_all_analysis,
+    cleanup_old_data,
+    get_scheduler_info,
+    poll_all_accounts_manual,
+    reanalyze_all_emails,
+)
 
 router = APIRouter()
 
@@ -53,7 +60,6 @@ async def health(db: AsyncSession = Depends(get_db)):
 
     # LLM check
     try:
-        settings = await get_settings(db)
         from app.services.classifier import get_llm_provider
 
         llm = await get_llm_provider(db)
@@ -74,12 +80,14 @@ async def health(db: AsyncSession = Depends(get_db)):
         select(Account).where(Account.is_active == True)  # noqa: E712
     )
     for account in result.scalars().all():
-        imap_accounts.append(IMAPAccountCheck(
-            account=account.email,
-            status="ok" if not account.last_poll_error else "error",
-            last_poll=account.last_poll_at,
-            error=account.last_poll_error,
-        ))
+        imap_accounts.append(
+            IMAPAccountCheck(
+                account=account.email,
+                status="ok" if not account.last_poll_error else "error",
+                last_poll=account.last_poll_at,
+                error=account.last_poll_error,
+            )
+        )
 
     # Scheduler info
     sched_info = get_scheduler_info()
@@ -128,7 +136,7 @@ async def health(db: AsyncSession = Depends(get_db)):
 @router.get("/stats", response_model=SystemStats)
 async def stats(db: AsyncSession = Depends(get_db)):
     """System statistics."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Uptime
@@ -162,9 +170,7 @@ async def stats(db: AsyncSession = Depends(get_db)):
     # Active accounts
     active_accounts = (
         await db.execute(
-            select(func.count())
-            .select_from(Account)
-            .where(Account.is_active == True)  # noqa: E712
+            select(func.count()).select_from(Account).where(Account.is_active == True)  # noqa: E712
         )
     ).scalar() or 0
 
@@ -223,6 +229,7 @@ async def poll_all(db: AsyncSession = Depends(get_db)):
 
     # Broadcast poll started event
     from app.services.ws_manager import ws_manager
+
     await ws_manager.broadcast("poll_started", {})
 
     result = await poll_all_accounts_manual()
@@ -255,6 +262,7 @@ async def reanalyze_all(db: AsyncSession = Depends(get_db)):
         llm_warning = f"LLM non configuré : {e}"
 
     from app.services.ws_manager import ws_manager
+
     await ws_manager.broadcast("poll_started", {})
 
     result = await reanalyze_all_emails()
@@ -293,6 +301,7 @@ async def create_test_email(payload: TestEmailRequest, db: AsyncSession = Depend
     # Find an account to attach the email to
     if payload.account_id:
         import uuid as _uuid
+
         result = await db.execute(
             select(Account).where(Account.id == _uuid.UUID(payload.account_id))
         )
@@ -318,7 +327,7 @@ async def create_test_email(payload: TestEmailRequest, db: AsyncSession = Depend
         from_name=payload.from_name,
         subject=payload.subject,
         body_excerpt=payload.body,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         folder="INBOX",
         is_read=False,
         is_flagged=False,
@@ -347,7 +356,9 @@ async def create_test_email(payload: TestEmailRequest, db: AsyncSession = Depend
             "confidence": classification.confidence if classification else None,
             "status": classification.status if classification else None,
             "classified_by": classification.classified_by if classification else None,
-        } if classification else None,
+        }
+        if classification
+        else None,
     }
 
 

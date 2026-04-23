@@ -1,6 +1,5 @@
 """Action execution service: run IMAP actions and log them."""
 
-import asyncio
 import logging
 import uuid
 
@@ -44,16 +43,26 @@ async def execute_actions(
                     raise ValueError("Missing 'folder' in move action")
                 current_folder = email.folder or "INBOX"
                 imap_service.move_email(
-                    account_host, account_port, account_username, password,
-                    email.uid, current_folder, folder,
+                    account_host,
+                    account_port,
+                    account_username,
+                    password,
+                    email.uid,
+                    current_folder,
+                    folder,
                 )
                 email.folder = folder
 
             elif action_type == "archive":
                 current_folder = email.folder or "INBOX"
                 imap_service.move_email(
-                    account_host, account_port, account_username, password,
-                    email.uid, current_folder, "Archive",
+                    account_host,
+                    account_port,
+                    account_username,
+                    password,
+                    email.uid,
+                    current_folder,
+                    "Archive",
                 )
                 email.folder = "Archive"
 
@@ -61,8 +70,13 @@ async def execute_actions(
                 current_folder = email.folder or "INBOX"
                 # Move to trash instead of permanent delete
                 imap_service.move_email(
-                    account_host, account_port, account_username, password,
-                    email.uid, current_folder, "Trash",
+                    account_host,
+                    account_port,
+                    account_username,
+                    password,
+                    email.uid,
+                    current_folder,
+                    "Trash",
                 )
                 email.folder = "Trash"
 
@@ -71,20 +85,38 @@ async def execute_actions(
                 folder = email.folder or "INBOX"
                 if flag_value in ("read", "seen"):
                     imap_service.set_flag(
-                        account_host, account_port, account_username, password,
-                        email.uid, folder, "read", True,
+                        account_host,
+                        account_port,
+                        account_username,
+                        password,
+                        email.uid,
+                        folder,
+                        "read",
+                        True,
                     )
                     email.is_read = True
                 elif flag_value in ("unread", "unseen"):
                     imap_service.set_flag(
-                        account_host, account_port, account_username, password,
-                        email.uid, folder, "read", False,
+                        account_host,
+                        account_port,
+                        account_username,
+                        password,
+                        email.uid,
+                        folder,
+                        "read",
+                        False,
                     )
                     email.is_read = False
                 elif flag_value in ("important", "flagged"):
                     imap_service.set_flag(
-                        account_host, account_port, account_username, password,
-                        email.uid, folder, "important", True,
+                        account_host,
+                        account_port,
+                        account_username,
+                        password,
+                        email.uid,
+                        folder,
+                        "important",
+                        True,
                     )
                     email.is_flagged = True
                 else:
@@ -93,8 +125,13 @@ async def execute_actions(
             elif action_type == "mark_spam":
                 current_folder = email.folder or "INBOX"
                 imap_service.move_email(
-                    account_host, account_port, account_username, password,
-                    email.uid, current_folder, "Spam",
+                    account_host,
+                    account_port,
+                    account_username,
+                    password,
+                    email.uid,
+                    current_folder,
+                    "Spam",
                 )
                 email.folder = "Spam"
 
@@ -125,11 +162,13 @@ async def execute_actions(
         )
         db.add(action_record)
 
-        results.append({
-            "type": action_type,
-            "status": status,
-            "error": error_message,
-            **({"folder": action_def.get("folder")} if action_type == "move" else {}),
-        })
+        results.append(
+            {
+                "type": action_type,
+                "status": status,
+                "error": error_message,
+                **({"folder": action_def.get("folder")} if action_type == "move" else {}),
+            }
+        )
 
     return results

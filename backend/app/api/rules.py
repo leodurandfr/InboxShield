@@ -9,15 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_db
-from app.models.action import Action
 from app.models.classification import Classification
 from app.models.email import Email
 from app.models.rule import Rule
-from app.schemas.common import PaginatedResponse
 from app.schemas.email import ClassificationSummary, EmailResponse
 from app.schemas.rule import (
     RuleCreate,
-    RuleReorderRequest,
     RuleResponse,
     RuleTestRequest,
     RuleTestResponse,
@@ -62,7 +59,9 @@ async def create_rule(data: RuleCreate, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Type doit être 'structured' ou 'natural'")
 
     if data.type == "structured" and not data.conditions:
-        raise HTTPException(status_code=400, detail="Les règles structurées nécessitent des conditions")
+        raise HTTPException(
+            status_code=400, detail="Les règles structurées nécessitent des conditions"
+        )
 
     if data.type == "natural" and not data.natural_text:
         raise HTTPException(status_code=400, detail="Les règles naturelles nécessitent un texte")
@@ -93,9 +92,7 @@ async def get_rule(rule_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{rule_id}", response_model=RuleResponse)
-async def update_rule(
-    rule_id: uuid.UUID, data: RuleUpdate, db: AsyncSession = Depends(get_db)
-):
+async def update_rule(rule_id: uuid.UUID, data: RuleUpdate, db: AsyncSession = Depends(get_db)):
     """Update a rule."""
     result = await db.execute(select(Rule).where(Rule.id == rule_id))
     rule = result.scalar_one_or_none()

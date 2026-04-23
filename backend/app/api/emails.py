@@ -13,7 +13,6 @@ from app.api.deps import get_db
 from app.models.account import Account
 from app.models.classification import Classification
 from app.models.email import Email
-from app.schemas.common import PaginatedResponse
 from app.schemas.email import (
     BulkActionRequest,
     BulkActionResponse,
@@ -134,9 +133,7 @@ async def list_emails(
 async def get_email(email_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Get email details with classification."""
     result = await db.execute(
-        select(Email)
-        .options(selectinload(Email.classification))
-        .where(Email.id == email_id)
+        select(Email).options(selectinload(Email.classification)).where(Email.id == email_id)
     )
     email = result.scalar_one_or_none()
     if not email:
@@ -155,9 +152,7 @@ async def get_email(email_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 
-async def _get_email_with_account(
-    email_id: uuid.UUID, db: AsyncSession
-) -> tuple[Email, Account]:
+async def _get_email_with_account(email_id: uuid.UUID, db: AsyncSession) -> tuple[Email, Account]:
     """Helper: get email + its account."""
     result = await db.execute(
         select(Email).options(selectinload(Email.account)).where(Email.id == email_id)

@@ -30,9 +30,7 @@ class EmailThread(Base, UUIDMixin, TimestampMixin):
             "idx_threads_awaiting",
             "awaiting_reply",
             "awaiting_response",
-            postgresql_where=(
-                "awaiting_reply = TRUE OR awaiting_response = TRUE"
-            ),
+            postgresql_where=("awaiting_reply = TRUE OR awaiting_response = TRUE"),
         ),
     )
 
@@ -79,8 +77,12 @@ class Email(Base, UUIDMixin):
     classification: Mapped["Classification | None"] = relationship(  # noqa: F821
         back_populates="email", uselist=False, cascade="all, delete-orphan"
     )
-    actions: Mapped[list["Action"]] = relationship(back_populates="email", cascade="all, delete-orphan")  # noqa: F821
-    urls: Mapped[list["EmailUrl"]] = relationship(back_populates="email", cascade="all, delete-orphan")
+    actions: Mapped[list["Action"]] = relationship(  # noqa: F821
+        back_populates="email", cascade="all, delete-orphan"
+    )
+    urls: Mapped[list["EmailUrl"]] = relationship(
+        back_populates="email", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("idx_emails_account_uid", "account_id", "uid", unique=True),

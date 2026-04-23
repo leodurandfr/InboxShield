@@ -147,11 +147,7 @@ async def update_thread_reply_status(
 
     user_lc = user_email.lower()
     from_lc = (from_address or "").lower()
-    to_list_lc = {
-        addr.lower()
-        for addr in (to_addresses or [])
-        if isinstance(addr, str)
-    }
+    to_list_lc = {addr.lower() for addr in (to_addresses or []) if isinstance(addr, str)}
 
     is_from_user = from_lc == user_lc
     is_to_user = user_lc in to_list_lc

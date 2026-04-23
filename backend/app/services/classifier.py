@@ -13,7 +13,6 @@ Pipeline:
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -150,25 +149,28 @@ async def classify_single_email(
     # but a Classification row already exists — caused by a previous
     # concurrent session bug).  Just fix the status and return.
     existing_classification = (
-        await db.execute(
-            select(Classification).where(Classification.email_id == email.id)
-        )
+        await db.execute(select(Classification).where(Classification.email_id == email.id))
     ).scalar_one_or_none()
 
     if existing_classification is not None:
         logger.info(
             "Email %s has orphaned classification (%s) — fixing status to 'classified'",
-            email.id, existing_classification.category,
+            email.id,
+            existing_classification.category,
         )
         email.processing_status = "classified"
         from app.services.ws_manager import ws_manager
-        await ws_manager.broadcast("email_classified", {
-            "email_id": str(email.id),
-            "category": existing_classification.category,
-            "confidence": existing_classification.confidence,
-            "status": existing_classification.status,
-            "classified_by": existing_classification.classified_by,
-        })
+
+        await ws_manager.broadcast(
+            "email_classified",
+            {
+                "email_id": str(email.id),
+                "category": existing_classification.category,
+                "confidence": existing_classification.confidence,
+                "status": existing_classification.status,
+                "classified_by": existing_classification.classified_by,
+            },
+        )
         return existing_classification
 
     # Step 0c: Claim this email for processing by setting "classifying" status.
@@ -179,13 +181,17 @@ async def classify_single_email(
     # Broadcast real-time "classifying" event with metadata so the frontend
     # can display the email even if it wasn't in the visible pending list.
     from app.services.ws_manager import ws_manager
-    await ws_manager.broadcast("email_classifying", {
-        "email_id": str(email.id),
-        "from_name": email.from_name,
-        "from_address": email.from_address,
-        "subject": email.subject,
-        "date": str(email.date) if email.date else None,
-    })
+
+    await ws_manager.broadcast(
+        "email_classifying",
+        {
+            "email_id": str(email.id),
+            "from_name": email.from_name,
+            "from_address": email.from_address,
+            "subject": email.subject,
+            "date": str(email.date) if email.date else None,
+        },
+    )
 
     # -----------------------------------------------------------------------
     # Step 1: Blocked sender → skip
@@ -205,9 +211,7 @@ async def classify_single_email(
     # -----------------------------------------------------------------------
     # Step 2: Direct classification via sender profile
     # -----------------------------------------------------------------------
-    direct_category = await sender_service.try_direct_classification(
-        db, account_id, from_address
-    )
+    direct_category = await sender_service.try_direct_classification(db, account_id, from_address)
 
     classification: Classification | None = None
 
@@ -222,7 +226,8 @@ async def classify_single_email(
         )
         logger.info(
             "Email %s classified directly: %s (sender_profile)",
-            email.id, direct_category,
+            email.id,
+            direct_category,
         )
 
     # -----------------------------------------------------------------------
@@ -230,9 +235,7 @@ async def classify_single_email(
     # -----------------------------------------------------------------------
     matched_rule_ref: Rule | None = None
     if classification is None:
-        matched_rule, rule_actions = await evaluate_rules(
-            db, email, None, account_id, llm=llm
-        )
+        matched_rule, rule_actions = await evaluate_rules(db, email, None, account_id, llm=llm)
 
         if matched_rule and matched_rule.category:
             matched_rule_ref = matched_rule
@@ -247,7 +250,9 @@ async def classify_single_email(
             )
             logger.info(
                 "Email %s classified by rule '%s': %s",
-                email.id, matched_rule.name, matched_rule.category,
+                email.id,
+                matched_rule.name,
+                matched_rule.category,
             )
 
     # -----------------------------------------------------------------------
@@ -282,12 +287,16 @@ async def classify_single_email(
         if brand_check.is_impersonation:
             logger.warning(
                 "Email %s: brand impersonation detected — '%s' claims '%s' but domain is '%s'",
-                email.id, email.from_name, brand_check.claimed_brand, brand_check.actual_domain,
+                email.id,
+                email.from_name,
+                brand_check.claimed_brand,
+                brand_check.actual_domain,
             )
         if url_analysis_result.has_suspicious:
             logger.warning(
                 "Email %s: %d suspicious URL(s) detected",
-                email.id, len(url_analysis_result.suspicious_urls),
+                email.id,
+                len(url_analysis_result.suspicious_urls),
             )
 
     # -----------------------------------------------------------------------
@@ -322,7 +331,9 @@ async def classify_single_email(
                     to_addresses=",".join(email.to_addresses or []),
                     subject=email.subject or "",
                     date=str(email.date),
-                    attachments=",".join(email.attachment_names or []) if email.attachment_names else "",
+                    attachments=",".join(email.attachment_names or [])
+                    if email.attachment_names
+                    else "",
                     body_excerpt=email.body_excerpt or "",
                     few_shot_examples=few_shot,
                     url_analysis=url_analysis_text,
@@ -369,9 +380,7 @@ async def classify_single_email(
                     # Use the LLM's category if it's not "phishing", otherwise
                     # fall back to "notification".
                     safe_category = (
-                        llm_result.category
-                        if llm_result.category != "phishing"
-                        else "notification"
+                        llm_result.category if llm_result.category != "phishing" else "notification"
                     )
                     classification = Classification(
                         email_id=email.id,
@@ -379,7 +388,8 @@ async def classify_single_email(
                         confidence=max(0.3, llm_result.confidence * 0.5),
                         explanation=(
                             f"{llm_result.explanation} "
-                            "[Corrigé : expéditeur légitime, URLs suspectes insuffisantes pour phishing]"
+                            "[Corrigé : expéditeur légitime, URLs suspectes insuffisantes "
+                            "pour phishing]"
                         ),
                         is_spam=llm_result.is_spam,
                         is_phishing=False,
@@ -414,16 +424,16 @@ async def classify_single_email(
 
                 logger.info(
                     "Email %s classified by LLM: %s (conf=%.2f, status=%s)",
-                    email.id, classification.category, classification.confidence,
+                    email.id,
+                    classification.category,
+                    classification.confidence,
                     classification.status,
                 )
 
         except Exception as e:
             # LLM exception — try structural detection before marking as failed
             logger.exception("LLM classification failed for email %s", email.id)
-            structural = _try_structural_phishing_detection(
-                email, url_analysis_result, brand_check
-            )
+            structural = _try_structural_phishing_detection(email, url_analysis_result, brand_check)
             if structural is not None:
                 classification = structural
                 logger.info(
@@ -442,9 +452,7 @@ async def classify_single_email(
     # even without a working LLM.
     # -----------------------------------------------------------------------
     if classification is None:
-        structural = _try_structural_phishing_detection(
-            email, url_analysis_result, brand_check
-        )
+        structural = _try_structural_phishing_detection(email, url_analysis_result, brand_check)
         if structural is not None:
             classification = structural
             logger.info(
@@ -460,7 +468,10 @@ async def classify_single_email(
                 email_id=email.id,
                 category="notification",
                 confidence=0.0,
-                explanation="Classification automatique impossible (LLM indisponible). À vérifier manuellement.",
+                explanation=(
+                    "Classification automatique impossible (LLM indisponible). "
+                    "À vérifier manuellement."
+                ),
                 status="review",
                 classified_by="fallback",
             )
@@ -472,9 +483,7 @@ async def classify_single_email(
     # classification between our Step 0b check and now (e.g. concurrent
     # background tasks).  Re-check right before inserting.
     race_check = (
-        await db.execute(
-            select(Classification).where(Classification.email_id == email.id)
-        )
+        await db.execute(select(Classification).where(Classification.email_id == email.id))
     ).scalar_one_or_none()
     if race_check is not None:
         logger.info(
@@ -491,13 +500,17 @@ async def classify_single_email(
 
     # Broadcast real-time event
     from app.services.ws_manager import ws_manager
-    await ws_manager.broadcast("email_classified", {
-        "email_id": str(email.id),
-        "category": classification.category,
-        "confidence": classification.confidence,
-        "status": classification.status,
-        "classified_by": classification.classified_by,
-    })
+
+    await ws_manager.broadcast(
+        "email_classified",
+        {
+            "email_id": str(email.id),
+            "category": classification.category,
+            "confidence": classification.confidence,
+            "status": classification.status,
+            "classified_by": classification.classified_by,
+        },
+    )
 
     # Update sender profile stats
     sender_profile = await sender_service.get_or_create_sender_profile(
@@ -539,7 +552,11 @@ async def classify_single_email(
     # -----------------------------------------------------------------------
     if classification.status == "auto":
         await _execute_post_classification_actions(
-            db, email, account, classification, settings,
+            db,
+            email,
+            account,
+            classification,
+            settings,
             matched_rule=matched_rule_ref,
         )
 
@@ -612,7 +629,8 @@ def _try_structural_phishing_detection(
         n_suspicious = len(url_analysis.suspicious_urls) if url_analysis.has_suspicious else 0
         if n_suspicious < 3:
             logger.debug(
-                "Structural detection skipped: only %d suspicious URL(s) and no brand impersonation",
+                "Structural detection skipped: only %d suspicious URL(s) and "
+                "no brand impersonation",
                 n_suspicious,
             )
             return None
@@ -732,7 +750,6 @@ async def _save_email_urls(
     url_analysis: "UrlAnalysisResult",
 ) -> None:
     """Save extracted URLs to the email_urls table."""
-    from app.services.url_analysis import UrlAnalysisResult  # noqa: F811
 
     if url_analysis.total_urls == 0:
         return
@@ -746,7 +763,6 @@ async def _save_email_urls(
     # We don't re-save all URLs (could be dozens), just the unique domains
     # For efficiency, save up to 50 URLs max
     seen_urls: set[str] = set()
-    from app.services.url_analysis import extract_urls_from_html  # noqa: F811
 
     # Re-use the already extracted data via the analysis result
     # We need the original ExtractedUrl objects, but we only have the analysis
@@ -835,7 +851,11 @@ async def classify_batch(
 
     logger.info(
         "Batch classification complete: %d total, %d classified, %d skipped, %d failed, %d review",
-        stats["total"], stats["classified"], stats["skipped"], stats["failed"], stats["review"],
+        stats["total"],
+        stats["classified"],
+        stats["skipped"],
+        stats["failed"],
+        stats["review"],
     )
 
     return stats
@@ -858,9 +878,7 @@ async def reclassify_email(
     # Remove existing classification if any (use direct query to avoid
     # MissingGreenlet from lazy-loading the relationship in async context)
     existing = (
-        await db.execute(
-            select(Classification).where(Classification.email_id == email.id)
-        )
+        await db.execute(select(Classification).where(Classification.email_id == email.id))
     ).scalar_one_or_none()
     if existing:
         await db.delete(existing)
