@@ -22,11 +22,24 @@ class SchedulerInfo(BaseModel):
     next_poll: datetime | None = None
 
 
+class LoadedModel(BaseModel):
+    name: str
+    size_bytes: int
+    size_vram_bytes: int = 0
+    context_length: int
+    expires_at: datetime | None = None
+
+
 class OllamaManagerStatus(BaseModel):
     running: bool
     managed_by_us: bool = False
     pid: int | None = None
     binary_path: str | None = None
+    install_method: str | None = None  # "homebrew" | "systemd" | "app" | "docker" | "unknown"
+    service_status: str | None = None  # "running" | "stopped" | "not-installed"
+    loaded_models: list[LoadedModel] = []
+    installed_models: list[dict] = []
+    total_disk_bytes: int = 0
 
 
 class HealthResponse(BaseModel):

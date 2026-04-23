@@ -300,33 +300,38 @@ export interface ThreadStats {
   oldest_awaiting: string | null
 }
 
-// Analytics Phase 3
-export interface ConfusionEntry {
-  original_category: string
-  corrected_category: string
-  count: number
-}
-
-export interface PerformanceMetrics {
-  period: string
-  avg_processing_time_ms: number | null
-  review_rate: number
-  correction_rate: number
-  direct_classification_rate: number
-  rule_classification_rate: number
-  llm_classification_rate: number
-  total_tokens_used: number
-}
-
-export interface HourlyHeatmapEntry {
-  day_of_week: number
-  hour: number
-  count: number
-}
-
 // LLM
 export interface LLMModel {
   name: string
   size: string | null
   modified_at: string | null
+}
+
+// Ollama manager
+export interface LoadedModel {
+  name: string
+  size_bytes: number
+  size_vram_bytes: number
+  context_length: number
+  expires_at: string | null
+}
+
+export interface InstalledModel {
+  name?: string
+  size?: number
+  digest?: string
+  modified_at?: string
+  [key: string]: unknown
+}
+
+export interface OllamaStatus {
+  running: boolean
+  managed_by_us: boolean
+  pid: number | null
+  binary_path: string | null
+  install_method: 'homebrew' | 'systemd' | 'app' | 'docker' | 'unknown' | null
+  service_status: 'running' | 'stopped' | 'not-installed' | null
+  loaded_models: LoadedModel[]
+  installed_models: InstalledModel[]
+  total_disk_bytes: number
 }

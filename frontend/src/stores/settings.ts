@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '@/lib/api'
-import type { Account, LLMModel, Settings } from '@/lib/types'
+import type { Account, LLMModel, OllamaStatus, Settings } from '@/lib/types'
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<Settings | null>(null)
   const accounts = ref<Account[]>([])
   const llmModels = ref<LLMModel[]>([])
+  const ollamaStatus = ref<OllamaStatus | null>(null)
   const loading = ref(false)
 
   async function fetchSettings() {
@@ -49,6 +50,20 @@ export const useSettingsStore = defineStore('settings', () => {
     llmModels.value = llmModels.value.filter((m) => m.name !== name)
   }
 
+  async function fetchOllamaStatus() {
+    try {
+      ollamaStatus.value = await api.get<OllamaStatus>('/system/ollama/status')
+    } catch (e) {
+      console.error('Failed to fetch Ollama status:', e)
+      ollamaStatus.value = null
+    }
+  }
+
+  async function unloadOllamaModel(name: string) {
+    await api.post(`/system/ollama/unload/${encodeURIComponent(name)}`)
+    await fetchOllamaStatus()
+  }
+
   async function fetchAll() {
     loading.value = true
     try {
@@ -59,7 +74,8 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   return {
-    settings, accounts, llmModels, loading,
-    fetchSettings, updateSettings, fetchAccounts, fetchLLMModels, testLLM, deleteLLMModel, fetchAll,
+    settings, accounts, llmModels, ollamaStatus, loading,
+    fetchSettings, updateSettings, fetchAccounts, fetchLLMModels, testLLM, deleteLLMModel,
+    fetchOllamaStatus, unloadOllamaModel, fetchAll,
   }
 })

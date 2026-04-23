@@ -47,9 +47,6 @@ import {
 const router = useRouter()
 const dashboard = useDashboardStore()
 
-// Restore classification state on mount (page reload recovery)
-dashboard.fetchClassificationStatus()
-
 async function handlePollAll() {
   const res = await dashboard.pollAll()
   if (res) {
