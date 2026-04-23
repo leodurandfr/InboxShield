@@ -139,13 +139,13 @@ inboxshield/
 - [x] **SettingsView** : CRUD comptes IMAP, test connexion, config LLM (provider/modele/cle API/base URL), pull modeles Ollama avec progression, seuil confiance, auto mode, date initial fetch. UX provider : Ollama → dropdown modeles locaux, Cloud → liste modeles du provider (statique/dynamique), modele par defaut auto, champ cle API conditionnel
 - [x] **NewslettersView** : liste paginee, stats (total/abonnees/taux lecture/jamais lues), filtres par statut, taux lecture avec barre, frequence, desinscription unitaire/groupee, selection multiple
 - [x] **SendersView** : liste paginee, tabs (tous/newsletters/bloques), recherche, categories avec badges, bloquer/debloquer, detail Sheet avec repartition categories
-- [x] **AnalyticsView** : KPI cards, repartition categories, top expediteurs, volume quotidien, performance metrics, matrice de confusion, heatmap jour×heure, export CSV, selection periode (7j/30j/90j)
+- [x] **AnalyticsView** : KPI cards, repartition categories, top expediteurs, volume quotidien, selection periode (7j/30j/90j)
 - [x] **ThreadsView** : stats cards (a repondre/reponse attendue/total/plus ancien), tabs avec filtres, liste conversations avec badges statut, detail Sheet avec timeline emails, actions resolve/ignore
 - [x] Composable `usePolling` (rafraichissement automatique periodique — Dashboard 60s, Emails 60s, Review 30s, pause si onglet masque)
 - [x] Composable `useWebSocket` (connexion WS singleton, reconnexion backoff exponentiel, ping/pong keep-alive, auto-cleanup listeners)
 - [x] Integration WebSocket dans views : Dashboard, Emails, Review, Threads ecoutent les events WS pour refresh temps reel
 - [x] Extraction composants : 13 composants extraits des Views monolithiques → `components/{domain}/` (shared: KPICard, PaginationControls; domain: EmailTable, EmailDetailSheet, ReviewItem, RuleCreateForm, RuleListItem, IMAPAccountSection, LLMConfigSection, ThreadDetailSheet, SenderDetailSheet)
-- [ ] Setup wizard (onboarding premier compte) — reporte
+- [x] Onboarding Ollama : `OllamaStatusCard` dans Settings (etat service, modeles charges, unload) + banner d'install si provider=ollama et service absent (remplace le setup wizard monolithique)
 
 #### Infra — COMPLET
 - [x] Docker Compose : backend + frontend + postgres + ollama
@@ -173,10 +173,9 @@ inboxshield/
 - [x] Reply tracking : awaiting_reply/awaiting_response, resolve/ignore actions
 - [x] API threads : list (avec filtres), stats, detail (avec emails), resolve, ignore (5 endpoints)
 - [x] Frontend ThreadsView : stats cards, tabs (tous/a repondre/reponse attendue), liste avec badges, detail Sheet timeline, actions resolve/ignore, polling 60s
-- [x] Analytics avancees : confusion matrix, performance metrics, hourly heatmap (4 nouveaux endpoints)
-- [x] Export CSV : StreamingResponse avec emails + classifications
-- [x] Frontend AnalyticsView enrichi : performance cards (temps moyen, taux review, methodes, tokens), matrice de confusion, heatmap jour×heure, bouton export CSV
 - [x] Ajustement dynamique du seuil de confiance : threshold_service.py (evaluate correction rate, ±0.03, bounds 0.5–0.95, job cron quotidien + endpoint API)
+- [ ] Analytics avancees (confusion matrix, performance metrics, hourly heatmap) — endpoints backend non implementes, code frontend retire
+- [ ] Export CSV analytics — endpoint backend non implemente, bouton frontend retire
 - [ ] Multi-comptes enrichi (UI + stats comparatives) — reporte
 
 ### Bugfixes notables
@@ -236,11 +235,14 @@ cd backend && uvicorn app.main:app --reload --port 8000
 # Dev frontend (pnpm, pas npm)
 cd frontend && pnpm dev
 
+# Install Ollama sur l'hote (Mac/Linux) — a faire avant `docker compose up`
+./scripts/install-ollama.sh        # --yes pour non-interactif
+
 # Docker
 docker compose up -d
-docker compose exec ollama ollama pull qwen2.5:7b
+docker compose exec ollama ollama pull qwen2.5:7b   # Linux uniquement (container ollama)
 
-# Docker Mac (Ollama natif)
+# Docker Mac (Ollama natif sur l'hote)
 docker compose -f docker-compose.yml -f docker-compose.mac.yml up -d
 
 # Migrations
@@ -259,3 +261,31 @@ cd frontend && pnpm install
 - **Production** : Mac Mini M4 Pro 24 GB (Ollama natif + Docker pour le reste)
 - **Dev** : MacBook Pro / toute machine avec Docker
 - Sur Mac : Ollama en natif pour les performances GPU (Metal), backend via `host.docker.internal:11434`
+
+## Gestion d'Ollama
+
+Approche : Ollama vit sur l'hote (brew services sur Mac, systemd sur Linux), jamais dans Docker sur Mac (GPU Metal indispensable). Le backend ne lance/installe rien — il supervise uniquement (lecture + unload d'un modele charge).
+
+### Scripts hote (`scripts/`)
+- `install-ollama.sh` : idempotent, detecte Darwin/Linux, installe via brew/official installer, demarre le service, pull le modele par defaut (`DEFAULT_OLLAMA_MODEL`, fallback `qwen3:8b`). Propose de deplacer `/Applications/Ollama.app` vers la Corbeille pour eviter le double daemon. Flag `--yes` pour non-interactif.
+- `uninstall-ollama.sh` : miroir — stop service, uninstall binaire. Conserve `~/.ollama/models/` (pas de re-download).
+
+### Supervision backend (`backend/app/services/ollama_manager.py`)
+- `detect_install_method()` → `"homebrew" | "systemd" | "app" | "unknown"`
+- `get_loaded_models()` : appel `/api/ps` (modeles resident en RAM, size, context, expires_at)
+- `unload_model(name)` : POST `/api/generate` avec `keep_alive=0` (decharge immediat, non destructif)
+- `get_disk_usage()` : somme des tailles via `/api/tags`
+- **Pas d'endpoint install/start/stop** : delibere — surface secu trop grande depuis un backend containerise.
+
+### API (`backend/app/api/system.py`)
+- `GET /api/v1/system/ollama/status` : `OllamaManagerStatus` riche (install_method, service_status, loaded_models, total_disk_bytes)
+- `POST /api/v1/system/ollama/unload/{model_name}` : decharge un modele de la RAM
+
+### Frontend (`components/settings/OllamaStatusCard.vue`)
+- Visible dans `SettingsView` uniquement si `llm_provider === "ollama"`
+- 3 etats : running (vert, liste modeles + bouton "Liberer la RAM") / stopped (orange, commande de restart) / not-installed (rouge, renvoie vers `scripts/install-ollama.sh`)
+- Auto-refresh via `usePolling(10000)` (10s)
+
+### Env
+- `DEFAULT_OLLAMA_MODEL` (`.env`, defaut `qwen3:8b`) : modele pull par le script + pre-selectionne dans Settings
+- `OLLAMA_KEEP_ALIVE` (hote, defaut `5m`, suggere `2m` sur Mac 24 Go) : duree avant unload auto — le script propose `launchctl setenv OLLAMA_KEEP_ALIVE 2m`

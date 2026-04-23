@@ -17,8 +17,11 @@ import {
   Key,
   Eye,
   EyeOff,
+  Rocket,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import OllamaStatusCard from '@/components/settings/OllamaStatusCard.vue'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useSettingsStore } from '@/stores/settings'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
@@ -78,6 +81,18 @@ const isCloudProvider = computed(() => {
   const p = store.settings?.llm_provider
   return p === 'anthropic' || p === 'openai' || p === 'mistral'
 })
+
+// Onboarding banner : premier lancement avec Ollama local mais daemon absent/arrêté.
+const showOnboardingBanner = computed(() => {
+  if (store.settings?.llm_provider !== 'ollama') return false
+  if (store.accounts.length > 0) return false
+  const status = store.ollamaStatus?.service_status
+  return status === 'not-installed' || status === 'stopped'
+})
+
+const onboardingBannerIsStopped = computed(
+  () => store.ollamaStatus?.service_status === 'stopped',
+)
 
 // Default models per cloud provider
 const defaultModels: Record<string, string> = {
@@ -157,6 +172,7 @@ const recommendedModels = [
 onMounted(() => {
   store.fetchAll()
   store.fetchLLMModels()
+  store.fetchOllamaStatus()
 })
 
 async function saveSettings() {
@@ -326,6 +342,31 @@ onUnmounted(() => {
   <PageHeader title="Paramètres" description="Configuration des comptes IMAP et du LLM" />
 
   <div class="space-y-6">
+    <!-- Onboarding banner : premier lancement, provider Ollama choisi mais daemon absent/arrêté -->
+    <Alert v-if="showOnboardingBanner" class="border-primary/40 bg-primary/5">
+      <Rocket class="h-4 w-4 text-primary" />
+      <AlertTitle>
+        {{ onboardingBannerIsStopped ? 'Démarre Ollama pour commencer' : 'Installe Ollama pour commencer' }}
+      </AlertTitle>
+      <AlertDescription>
+        <p class="mb-2">
+          {{
+            onboardingBannerIsStopped
+              ? 'Le daemon Ollama est installé mais arrêté. Relance-le avec la commande ci-dessous, puis ajoute un compte IMAP.'
+              : 'InboxShield est configuré pour utiliser Ollama en local. Exécute le script d\'installation depuis la racine du projet, puis ajoute un compte IMAP.'
+          }}
+        </p>
+        <pre class="rounded bg-muted px-3 py-2 text-xs font-mono">{{
+          onboardingBannerIsStopped
+            ? 'brew services start ollama    # macOS\nsystemctl start ollama         # Linux'
+            : './scripts/install-ollama.sh'
+        }}</pre>
+        <p class="mt-2 text-xs text-muted-foreground">
+          Pas envie d'installer un LLM local ? Choisis un provider cloud (Claude, OpenAI, Mistral) ci-dessous et renseigne une clé API.
+        </p>
+      </AlertDescription>
+    </Alert>
+
     <!-- IMAP Accounts -->
     <Card>
       <CardHeader class="flex flex-row items-center justify-between space-y-0">
@@ -482,6 +523,9 @@ onUnmounted(() => {
         </div>
       </CardContent>
     </Card>
+
+    <!-- Ollama supervision (visible uniquement si provider = ollama) -->
+    <OllamaStatusCard v-if="store.settings?.llm_provider === 'ollama'" />
 
     <!-- LLM Configuration -->
     <template v-if="store.settings">

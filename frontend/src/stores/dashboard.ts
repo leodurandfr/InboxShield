@@ -129,21 +129,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     clearClassificationProgress()
   }
 
-  /** Fetch classification status from API (for page reload recovery) */
-  async function fetchClassificationStatus() {
-    try {
-      const res = await api.get<{ active: boolean; pending_count: number }>('/system/classification-status')
-      classifying.value = res.active
-      if (!res.active && res.pending_count > 0) {
-        pendingResumeCount.value = res.pending_count
-      } else {
-        pendingResumeCount.value = 0
-      }
-    } catch (e) {
-      console.error('Failed to fetch classification status:', e)
-    }
-  }
-
   async function fetchAll() {
     loading.value = true
     error.value = null
@@ -269,7 +254,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     classifying, pendingResumeCount,
     fetchStats, fetchRecentEmails, fetchPendingEmails, fetchAll,
     pollAll, reanalyzeAll, cancelAnalysis, resumeClassification, createTestEmail,
-    fetchClassificationStatus,
     markEmailClassifying, markEmailClassified,
     updateClassificationProgress, clearClassificationProgress,
     setClassificationComplete, setClassificationCancelled,

@@ -201,17 +201,63 @@ cd inboxshield
 cp .env.example .env
 # Éditer .env : DB_PASSWORD, ENCRYPTION_KEY
 
-# 3. Lancer
-docker compose up -d
+# 3. (LLM local) Installer Ollama nativement — voir « Installation d'Ollama » ci-dessous
+./scripts/install-ollama.sh
 
-# 4. Installer le modèle LLM (première fois)
-docker compose exec ollama ollama pull qwen2.5:7b
+# 4. Lancer la stack
+docker compose up -d                                                     # Linux (Ollama container par défaut)
+docker compose -f docker-compose.yml -f docker-compose.mac.yml up -d     # Mac (Ollama natif)
 
 # 5. Ouvrir le navigateur
 open http://localhost:8080
 ```
 
 L'app affiche le wizard de setup au premier lancement.
+
+## Installation d'Ollama
+
+InboxShield consomme Ollama via HTTP (`OLLAMA_BASE_URL`). Trois chemins d'installation selon l'OS :
+
+### Mac (recommandé : Ollama natif)
+
+Sur macOS, **ne pas utiliser le container `ollama`** du compose : le container Linux n'a pas accès au GPU Metal d'Apple Silicon, donc l'inférence tombe sur le CPU et devient très lente. À la place, installer le binaire natif :
+
+```bash
+./scripts/install-ollama.sh
+```
+
+Le script :
+- Vérifie la présence de Homebrew (obligatoire).
+- Propose de déplacer `/Applications/Ollama.app` vers la Corbeille si elle existe (l'app desktop garde les modèles chargés en RAM indéfiniment, ce qui entre en conflit avec `brew services`).
+- `brew install ollama` + `brew services start ollama`.
+- Attend que `curl http://localhost:11434/api/tags` réponde 200.
+- `ollama pull ${DEFAULT_OLLAMA_MODEL}` (défaut `qwen3:8b`).
+- Propose optionnellement `launchctl setenv OLLAMA_KEEP_ALIVE 2m` pour libérer la RAM plus vite après chaque classification.
+
+Lancer ensuite le compose avec l'override Mac pour retirer le service `ollama` et pointer le backend sur `host.docker.internal:11434` :
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mac.yml up -d
+```
+
+> **⚠ Déprécié sur Mac** : `docker compose exec ollama ollama pull ...` ne fonctionne plus — le service `ollama` est absent du compose effectif. Utiliser directement `ollama pull <modèle>` depuis le terminal hôte, ou le bouton « Télécharger un modèle » dans l'UI Paramètres.
+
+### Linux (Ollama natif ou container)
+
+Deux options :
+
+- **Natif** (recommandé si vous avez un GPU NVIDIA/AMD ou que vous souhaitez garder les modèles en cache au-delà de la durée de vie du container) : `./scripts/install-ollama.sh` installe via `curl -fsSL https://ollama.com/install.sh | sh` et configure systemd.
+- **Container** (défaut du `docker-compose.yml`) : pas d'action hôte, mais CPU-only sauf si vous configurez le GPU passthrough (section commentée dans le compose). Pull d'un modèle : `docker compose exec ollama ollama pull qwen3:8b`.
+
+### Désinstallation
+
+```bash
+./scripts/uninstall-ollama.sh    # Stoppe le service et retire le binaire. Les modèles dans ~/.ollama/ restent intacts.
+```
+
+### Supervision depuis l'UI
+
+L'onglet **Paramètres** affiche un panneau « Ollama » quand le provider configuré est `ollama` : méthode d'installation détectée, modèles installés, modèles chargés en RAM, bouton « Libérer la RAM » par modèle. Refresh auto toutes les 10 s. Les instructions de dépannage (daemon arrêté, non installé) sont affichées directement dans la carte.
 
 ## Développement local (sans Docker)
 

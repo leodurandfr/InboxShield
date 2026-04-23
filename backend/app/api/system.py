@@ -17,6 +17,7 @@ from app.schemas.system import (
     HealthResponse,
     IMAPAccountCheck,
     LLMStatus,
+    LoadedModel,
     OllamaManagerStatus,
     SchedulerInfo,
     ServiceCheck,
@@ -110,13 +111,15 @@ async def health(db: AsyncSession = Depends(get_db)):
     elif checks.get("ollama", {}) and getattr(checks.get("ollama"), "status", "") == "error":
         overall = "degraded"
 
-    # Ollama manager status
+    # Ollama manager status (lightweight — no disk/ps probes for the health endpoint)
     om_status = ollama_manager.get_status()
     ollama_mgr = OllamaManagerStatus(
         running=om_status["running"],
         managed_by_us=om_status["managed_by_us"],
         pid=om_status["pid"],
         binary_path=om_status["binary_path"],
+        install_method=om_status.get("install_method"),
+        service_status=om_status.get("service_status"),
     )
 
     return HealthResponse(
@@ -399,14 +402,38 @@ async def trigger_threshold_adjustment():
 
 @router.get("/ollama/status", response_model=OllamaManagerStatus)
 async def ollama_status():
-    """Get the current Ollama manager status."""
+    """Rich Ollama status: install method, loaded models, disk usage."""
     status = ollama_manager.get_status()
+    loaded_raw: list[dict] = []
+    installed: list[dict] = []
+    disk = {"total_bytes": 0, "model_count": 0}
+    if status["running"]:
+        loaded_raw = await ollama_manager.get_loaded_models()
+        installed = await ollama_manager.list_installed_models()
+        disk = await ollama_manager.get_disk_usage()
+
     return OllamaManagerStatus(
         running=status["running"],
         managed_by_us=status["managed_by_us"],
         pid=status["pid"],
         binary_path=status["binary_path"],
+        install_method=status.get("install_method"),
+        service_status=status.get("service_status"),
+        loaded_models=[LoadedModel(**m) for m in loaded_raw],
+        installed_models=installed,
+        total_disk_bytes=int(disk.get("total_bytes") or 0),
     )
+
+
+@router.post("/ollama/unload/{model_name:path}")
+async def ollama_unload(model_name: str):
+    """Force-unload a model from RAM (non-destructive — doesn't uninstall)."""
+    if not model_name:
+        raise HTTPException(status_code=400, detail="model_name requis")
+    ok = await ollama_manager.unload_model(model_name)
+    if not ok:
+        raise HTTPException(status_code=502, detail="Ollama a refusé la demande de déchargement")
+    return {"status": "ok", "model": model_name}
 
 
 @router.post("/ollama/restart")

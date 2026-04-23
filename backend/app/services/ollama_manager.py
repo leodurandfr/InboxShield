@@ -7,14 +7,21 @@ container is managed by Compose. This module only talks to the HTTP API.
 
 import json
 import logging
+import os
 import shutil
+import subprocess
 from collections.abc import AsyncIterator, Callable
+from datetime import datetime
+from typing import Literal
 
 import httpx
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+InstallMethod = Literal["homebrew", "systemd", "app", "docker", "unknown"]
+ServiceStatus = Literal["running", "stopped", "not-installed"]
 
 
 class OllamaManager:
@@ -28,12 +35,72 @@ class OllamaManager:
 
     def get_status(self) -> dict:
         running = self._is_running_sync()
+        binary_path = shutil.which("ollama")
+        install_method = self.detect_install_method()
+        if running:
+            service_status: ServiceStatus = "running"
+        elif install_method == "unknown" and binary_path is None:
+            service_status = "not-installed"
+        else:
+            service_status = "stopped"
         return {
             "running": running,
             "managed_by_us": self._managed_by_us,
             "pid": self._pid,
-            "binary_path": shutil.which("ollama"),
+            "binary_path": binary_path,
+            "install_method": install_method,
+            "service_status": service_status,
         }
+
+    def detect_install_method(self) -> InstallMethod:
+        """Best-effort heuristic for how Ollama was installed on this host.
+
+        The backend often runs inside Docker, so filesystem probes for
+        `/Applications/Ollama.app` or `brew` typically fail — in that case
+        we return "docker" when the configured base URL points to the
+        in-stack container, otherwise "unknown".
+        """
+        base_url = settings.ollama_base_url or ""
+        if "ollama:" in base_url and not os.path.exists("/Applications/Ollama.app"):
+            # Inside docker compose, backend → service named "ollama".
+            if not shutil.which("ollama") and not os.path.exists("/usr/bin/brew"):
+                return "docker"
+
+        try:
+            if os.path.exists("/Applications/Ollama.app"):
+                return "app"
+        except OSError:
+            pass
+
+        brew = shutil.which("brew")
+        if brew:
+            try:
+                res = subprocess.run(
+                    [brew, "list", "ollama"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                )
+                if res.returncode == 0:
+                    return "homebrew"
+            except (subprocess.TimeoutExpired, OSError):
+                pass
+
+        systemctl = shutil.which("systemctl")
+        if systemctl:
+            try:
+                res = subprocess.run(
+                    [systemctl, "is-active", "ollama"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                )
+                if res.returncode == 0 and "active" in (res.stdout or ""):
+                    return "systemd"
+            except (subprocess.TimeoutExpired, OSError):
+                pass
+
+        return "unknown"
 
     def _is_running_sync(self) -> bool:
         try:
@@ -70,6 +137,69 @@ class OllamaManager:
     async def has_model(self, name: str) -> bool:
         models = await self.list_installed_models()
         return any(m.get("name") == name for m in models)
+
+    async def get_loaded_models(self) -> list[dict]:
+        """Return models currently loaded in memory (equivalent of `ollama ps`).
+
+        Each dict has keys: name, size_bytes, size_vram_bytes, context_length,
+        expires_at. `size_bytes` is total RAM footprint, `size_vram_bytes` is
+        the GPU/Metal-resident portion (0 on CPU-only hosts).
+        """
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                r = await client.get(f"{settings.ollama_base_url}/api/ps")
+                r.raise_for_status()
+                data = r.json()
+        except Exception as exc:
+            logger.debug("get_loaded_models: %s", exc)
+            return []
+
+        out: list[dict] = []
+        for m in data.get("models", []) or []:
+            details = m.get("details") or {}
+            ctx = m.get("context_length") or m.get("size_ctx") or details.get("context_length") or 0
+            expires_raw = m.get("expires_at")
+            expires_at: datetime | None = None
+            if expires_raw:
+                try:
+                    expires_at = datetime.fromisoformat(expires_raw.replace("Z", "+00:00"))
+                except (ValueError, AttributeError):
+                    expires_at = None
+            out.append(
+                {
+                    "name": m.get("name") or m.get("model") or "",
+                    "size_bytes": int(m.get("size") or 0),
+                    "size_vram_bytes": int(m.get("size_vram") or 0),
+                    "context_length": int(ctx or 0),
+                    "expires_at": expires_at,
+                }
+            )
+        return out
+
+    async def unload_model(self, name: str) -> bool:
+        """Force-unload a model from RAM by setting keep_alive to 0."""
+        url = f"{settings.ollama_base_url}/api/generate"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                r = await client.post(
+                    url,
+                    json={"model": name, "prompt": "", "keep_alive": 0, "stream": False},
+                )
+                return r.status_code == 200
+        except httpx.HTTPError as exc:
+            logger.warning("unload_model(%s) transport error: %s", name, exc)
+            return False
+
+    async def get_disk_usage(self) -> dict:
+        """Sum the sizes reported by /api/tags. Returns total_bytes + model_count."""
+        models = await self.list_installed_models()
+        total = 0
+        for m in models:
+            try:
+                total += int(m.get("size") or 0)
+            except (TypeError, ValueError):
+                continue
+        return {"total_bytes": total, "model_count": len(models)}
 
     # ------------------------------------------------------------------
     # Pulling
