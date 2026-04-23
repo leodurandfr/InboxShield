@@ -113,19 +113,21 @@ Le cleanup Synology a détruit bien plus que le plan initial anticipait. Remis e
 
 ---
 
-## Phase 3 — Stack Docker end-to-end
+## Phase 3 — Stack Docker end-to-end ✅ (complétée — `docker compose up -d` fonctionnel)
 
-Objectif : `docker compose up` lance l'app complète avec Postgres + Ollama.
+Objectif : `docker compose up` lance l'app complète avec Postgres + (Ollama). ✅
 
-- [ ] Créer `.env.example` (variables listées dans `docs/06-DEPLOYMENT.md`)
-- [ ] Vérifier `docker-compose.yml` et `docker-compose.mac.yml`
-- [ ] Vérifier `backend/Dockerfile` (build réussit)
-- [ ] Vérifier `frontend/Dockerfile` (build multi-stage + Nginx)
-- [ ] Vérifier `nginx.conf` (proxy `/api/*` → backend:8000)
-- [ ] `docker compose up -d` sans erreur
-- [ ] Pull modèle Ollama (`ollama pull qwen2.5:7b`)
+- [x] Créer `.env.example` (variables listées dans `docs/06-DEPLOYMENT.md`)
+- [x] Vérifier `docker-compose.yml` et `docker-compose.mac.yml` (config valide via `docker compose config`)
+- [x] Vérifier `backend/Dockerfile` (build réussit en ~6s avec cache) + ajout `.dockerignore`
+- [x] Créer `frontend/Dockerfile` (build multi-stage pnpm + Nginx 1.27-alpine) + `.dockerignore`
+- [x] Enrichir `nginx.conf` : ajout du proxy WebSocket `/api/v1/ws` (Upgrade headers, 3600s timeout)
+- [x] Génération de la migration initiale Alembic `256a2db15dc2_initial_schema.py` (autogenerate contre Postgres 16 dans le compose)
+- [x] `docker compose -f docker-compose.yml -f docker-compose.mac.yml up -d` : 3 conteneurs up (postgres healthy, backend, frontend)
+- [x] Validation end-to-end : `GET http://localhost:8080/` → 200 (SPA), `GET http://localhost:8080/api/v1/system/health` → 200 proxyfié (db ok, scheduler running, 4 jobs)
+- [ ] Pull modèle Ollama (`ollama pull qwen2.5:7b`) — étape utilisateur, hors scope CI
 
-**Validation Phase 3** : accès à l'UI via `http://localhost` en passant par Nginx.
+**Validation Phase 3** : accès à l'UI via `http://localhost:8080` en passant par Nginx ✅. API `/api/v1/*` proxyfiée correctement. Volume `postgres_data` persistant. Stack tear-down propre avec `docker compose down -v`.
 
 ---
 
